@@ -1,4 +1,5 @@
 #include "driver/ledc.h"
+#include "esp_sleep.h"
 #include "hal/ledc_types.h"
 
 class Led {
@@ -57,5 +58,8 @@ extern "C" void app_main() {
           },
   };
   Led led(cfg);
-  led.set_duty(16384);
+  led.set_duty(0);
+
+  // go to sleep
+  esp_deep_sleep_start();
 }
