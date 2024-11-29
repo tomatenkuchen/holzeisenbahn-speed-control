@@ -25,6 +25,13 @@ private:
   Config cfg;
 };
 
+class Ble {
+public:
+  Ble() {}
+
+private:
+};
+
 extern "C" void app_main() {
   Led::Config cfg = {
       .timer =
@@ -50,5 +57,5 @@ extern "C" void app_main() {
           },
   };
   Led led(cfg);
-  led.set_duty(32768);
+  led.set_duty(16384);
 }
