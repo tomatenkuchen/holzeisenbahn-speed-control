@@ -2,10 +2,6 @@
 #include "gatt_svc.hpp"
 #include <stdexcept>
 
-#define BLE_GAP_APPEARANCE_GENERIC_TAG 0x0200
-#define BLE_GAP_URI_PREFIX_HTTPS 0x17
-#define BLE_GAP_LE_ROLE_PERIPHERAL 0x00
-
 extern "C" {
 #include "host/ble_gap.h"
 #include "services/gap/ble_svc_gap.h"
@@ -29,25 +25,10 @@ void print_conn_desc(struct ble_gap_conn_desc *desc);
 void start_advertising(void);
 int gap_event_handler(struct ble_gap_event *event, void *arg);
 
-/* Private variables */
 uint8_t own_addr_type;
 uint8_t addr_val[6] = {0};
-uint8_t esp_uri[] = {BLE_GAP_URI_PREFIX_HTTPS,
-                     '/',
-                     '/',
-                     'e',
-                     's',
-                     'p',
-                     'r',
-                     'e',
-                     's',
-                     's',
-                     'i',
-                     'f',
-                     '.',
-                     'c',
-                     'o',
-                     'm'};
+uint8_t esp_uri[] = {0x17, '/', '/', 'e', 's', 'p', 'r', 'e',
+                     's',  's', 'i', 'f', '.', 'c', 'o', 'm'};
 
 /* Private functions */
 inline void format_addr(char *addr_str, uint8_t addr[]) {
@@ -81,9 +62,7 @@ void print_conn_desc(struct ble_gap_conn_desc *desc) {
            desc->sec_state.bonded);
 }
 
-void start_advertising(void) {
-  /* Local variables */
-  int rc = 0;
+void start_advertising() {
   const char *name;
   struct ble_hs_adv_fields adv_fields = {0};
   struct ble_hs_adv_fields rsp_fields = {0};
@@ -103,19 +82,16 @@ void start_advertising(void) {
   adv_fields.tx_pwr_lvl_is_present = 1;
 
   /* Set device appearance */
-  adv_fields.appearance = BLE_GAP_APPEARANCE_GENERIC_TAG;
+  adv_fields.appearance = 0x200;
   adv_fields.appearance_is_present = 1;
 
   /* Set device LE role */
-  adv_fields.le_role = BLE_GAP_LE_ROLE_PERIPHERAL;
+  adv_fields.le_role = 0;
   adv_fields.le_role_is_present = 1;
 
   /* Set advertiement fields */
-  rc = ble_gap_adv_set_fields(&adv_fields);
-  if (rc != 0) {
-    ESP_LOGE("GATT-Server", "failed to set advertising data, error code: %d",
-             rc);
-    return;
+  if (ble_gap_adv_set_fields(&adv_fields)) {
+    throw std::runtime_error("failed to set advertising data");
   }
 
   /* Set device address */
@@ -132,11 +108,8 @@ void start_advertising(void) {
   rsp_fields.adv_itvl_is_present = 1;
 
   /* Set scan response fields */
-  rc = ble_gap_adv_rsp_set_fields(&rsp_fields);
-  if (rc != 0) {
-    ESP_LOGE("GATT-Server", "failed to set scan response data, error code: %d",
-             rc);
-    return;
+  if (ble_gap_adv_rsp_set_fields(&rsp_fields)) {
+    throw std::runtime_error("failed to set scan response data");
   }
 
   /* Set non-connetable and general discoverable mode to be a beacon */
@@ -148,11 +121,9 @@ void start_advertising(void) {
   adv_params.itvl_max = BLE_GAP_ADV_ITVL_MS(510);
 
   /* Start advertising */
-  rc = ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params,
-                         gap_event_handler, NULL);
-  if (rc != 0) {
-    ESP_LOGE("GATT-Server", "failed to start advertising, error code: %d", rc);
-    return;
+  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params,
+                        gap_event_handler, NULL)) {
+    throw std::runtime_error("failed to start advertising");
   }
   ESP_LOGI("GATT-Server", "advertising started!");
 }
@@ -160,17 +131,12 @@ void start_advertising(void) {
 /*
  * NimBLE applies an event-driven model to keep GAP service going
  * gap_event_handler is a callback function registered when calling
- * ble_gap_adv_start API and called when a GAP event arrives
- */
+ * ble_gap_adv_start API and called when a GAP event arrives */
 int gap_event_handler(struct ble_gap_event *event, void *arg) {
-  /* Local variables */
-  int rc = 0;
   struct ble_gap_conn_desc desc;
 
-  /* Handle different GAP event */
   switch (event->type) {
 
-  /* Connect event */
   case BLE_GAP_EVENT_CONNECT:
     /* A new connection was established or a connection attempt failed. */
     ESP_LOGI("GATT-Server", "connection %s; status=%d",
@@ -180,36 +146,25 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
     /* Connection succeeded */
     if (event->connect.status == 0) {
       /* Check connection handle */
-      rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
-      if (rc != 0) {
-        ESP_LOGE("GATT-Server",
-                 "failed to find connection by handle, error code: %d", rc);
-        return rc;
+      if (ble_gap_conn_find(event->connect.conn_handle, &desc)) {
+        throw std::runtime_error("failed to find connection by handle");
       }
 
-      /* Print connection descriptor */
       print_conn_desc(&desc);
 
-      /* Try to update connection parameters */
       struct ble_gap_upd_params params = {.itvl_min = desc.conn_itvl,
                                           .itvl_max = desc.conn_itvl,
                                           .latency = 3,
                                           .supervision_timeout =
                                               desc.supervision_timeout};
-      rc = ble_gap_update_params(event->connect.conn_handle, &params);
-      if (rc != 0) {
-        ESP_LOGE("GATT-Server",
-                 "failed to update connection parameters, error code: %d", rc);
-        return rc;
+      if (ble_gap_update_params(event->connect.conn_handle, &params)) {
+        throw std::runtime_error("failed to update connection parameters");
       }
-    }
-    /* Connection failed, restart advertising */
-    else {
+    } else {
       start_advertising();
     }
-    return rc;
+    return 0;
 
-  /* Disconnect event */
   case BLE_GAP_EVENT_DISCONNECT:
     /* A connection was terminated, print connection descriptor */
     ESP_LOGI("GATT-Server", "disconnected from peer; reason=%d",
@@ -217,33 +172,27 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
 
     /* Restart advertising */
     start_advertising();
-    return rc;
+    return 0;
 
-  /* Connection parameters update event */
   case BLE_GAP_EVENT_CONN_UPDATE:
     /* The central has updated the connection parameters. */
     ESP_LOGI("GATT-Server", "connection updated; status=%d",
              event->conn_update.status);
 
     /* Print connection descriptor */
-    rc = ble_gap_conn_find(event->conn_update.conn_handle, &desc);
-    if (rc != 0) {
-      ESP_LOGE("GATT-Server",
-               "failed to find connection by handle, error code: %d", rc);
-      return rc;
+    if (ble_gap_conn_find(event->conn_update.conn_handle, &desc)) {
+      throw std::runtime_error("failed to find connection by handle");
     }
     print_conn_desc(&desc);
-    return rc;
+    return 0;
 
-  /* Advertising complete event */
   case BLE_GAP_EVENT_ADV_COMPLETE:
     /* Advertising completed, restart advertising */
     ESP_LOGI("GATT-Server", "advertise complete; reason=%d",
              event->adv_complete.reason);
     start_advertising();
-    return rc;
+    return 0;
 
-  /* Notification sent event */
   case BLE_GAP_EVENT_NOTIFY_TX:
     if ((event->notify_tx.status != 0) &&
         (event->notify_tx.status != BLE_HS_EDONE)) {
@@ -254,11 +203,9 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
                event->notify_tx.conn_handle, event->notify_tx.attr_handle,
                event->notify_tx.status, event->notify_tx.indication);
     }
-    return rc;
+    return 0;
 
-  /* Subscribe event */
   case BLE_GAP_EVENT_SUBSCRIBE:
-    /* Print subscription info to log */
     ESP_LOGI("GATT-Server",
              "subscribe event; conn_handle=%d attr_handle=%d "
              "reason=%d prevn=%d curn=%d previ=%d curi=%d",
@@ -267,46 +214,35 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
              event->subscribe.cur_notify, event->subscribe.prev_indicate,
              event->subscribe.cur_indicate);
 
-    /* GATT subscribe event callback */
     gatt_svr_subscribe_cb(event);
-    return rc;
+    return 0;
 
-  /* MTU update event */
   case BLE_GAP_EVENT_MTU:
-    /* Print MTU update info to log */
     ESP_LOGI("GATT-Server", "mtu update event; conn_handle=%d cid=%d mtu=%d",
              event->mtu.conn_handle, event->mtu.channel_id, event->mtu.value);
-    return rc;
+    return 0;
   }
 
-  return rc;
+  return 0;
 }
 } // namespace
 
 void adv_init() {
-  int rc = 0;
   char addr_str[18] = {0};
 
   /* Make sure we have proper BT identity address set (random preferred) */
-  rc = ble_hs_util_ensure_addr(0);
-  if (rc != 0) {
-    ESP_LOGE("GATT-Server", "device does not have any available bt address!");
-    return;
+  if (ble_hs_util_ensure_addr(0)) {
+    throw std::runtime_error("device does not have any available bt address!");
   }
 
   /* Figure out BT address to use while advertising (no privacy for now) */
-  rc = ble_hs_id_infer_auto(0, &own_addr_type);
-  if (rc != 0) {
-    ESP_LOGE("GATT-Server", "failed to infer address type, error code: %d", rc);
-    return;
+  if (ble_hs_id_infer_auto(0, &own_addr_type)) {
+    throw std::runtime_error("failed to infer address type");
   }
 
   /* Printing ADDR */
-  rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
-  if (rc != 0) {
-    ESP_LOGE("GATT-Server", "failed to copy device address, error code: %d",
-             rc);
-    return;
+  if (ble_hs_id_copy_addr(own_addr_type, addr_val, NULL)) {
+    throw std::runtime_error("failed to copy device address");
   }
   format_addr(addr_str, addr_val);
   ESP_LOGI("GATT-Server", "device address: %s", addr_str);
