@@ -1,5 +1,6 @@
 #pragma once
 
+#include "driver/ledc.h"
 #include "hal/ledc_types.h"
 
 class Pwm {

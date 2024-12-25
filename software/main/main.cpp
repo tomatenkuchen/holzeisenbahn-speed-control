@@ -20,7 +20,11 @@ extern "C" {
 void ble_store_config_init(void);
 }
 
+int32_t speed_ref = 0;
+
 namespace {
+
+int32_t get_motor_speed() { return 0; }
 
 /**
  *  Stack event callback functions
@@ -86,8 +90,9 @@ void motor_task(void *param) {
               .flags = {false},
           },
   };
+
   Pwm pwm(cfg);
-  Pid<int32_t> speed_control(pid_cfg);
+  Pid<int32_t> speed_control(1000);
 
   while (true) {
     auto speed_is = get_motor_speed();
@@ -96,6 +101,7 @@ void motor_task(void *param) {
     pwm.set_duty(duty_new);
     vTaskDelay(100);
   }
+  vTaskDelete(nullptr);
 }
 
 void prepare_nvm() {

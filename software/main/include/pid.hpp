@@ -10,9 +10,7 @@
 #include <cstdint>
 #include <limits>
 
-/**
- * @brief controller class
- */
+/** @brief controller class */
 template <typename T>
   requires std::integral<T> || std::floating_point<T>
 class Pid {
@@ -50,8 +48,8 @@ public:
       Limits lim = {std::numeric_limits<T>::max(),
                     std::numeric_limits<T>::min()},
       ChannelConfig cfg_i = {0, 0}, ChannelConfig cfg_d = {0, 0})
-      : i_state{cfg_i.channel_init}, d_state{cfg_d.channel_init}, K_p{K_p},
-        cfg_i{cfg_i}, cfg_d{cfg_d}, output_limits{lim} {}
+      : K_p{K_p}, cfg_i{cfg_i}, cfg_d{cfg_d}, output_limits{lim},
+        i_state{cfg_i.channel_init}, d_state{cfg_d.channel_init} {}
 
   Pid(Pid const &) = default;
   Pid(Pid &&) = default;
