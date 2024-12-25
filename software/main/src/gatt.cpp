@@ -1,4 +1,4 @@
-#include "gatt_svc.hpp"
+#include "gatt.hpp"
 #include "gap.hpp"
 #include "heart_rate.hpp"
 #include "led.hpp"

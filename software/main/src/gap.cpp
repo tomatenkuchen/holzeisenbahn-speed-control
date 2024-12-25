@@ -130,7 +130,7 @@ void start_advertising() {
  * NimBLE applies an event-driven model to keep GAP service going
  * gap_event_handler is a callback function registered when calling
  * ble_gap_adv_start API and called when a GAP event arrives */
-int event_handler(struct ble_gap_event *event, void *arg) {
+int gap_event_handler(struct ble_gap_event *event, void *arg) {
   struct ble_gap_conn_desc desc;
 
   switch (event->type) {
@@ -212,7 +212,7 @@ int event_handler(struct ble_gap_event *event, void *arg) {
              event->subscribe.cur_notify, event->subscribe.prev_indicate,
              event->subscribe.cur_indicate);
 
-    ble::gatt::subscribe_cb(event);
+    ble::gatt::server_subscribe_cb(event);
     return 0;
 
   case BLE_GAP_EVENT_MTU:
