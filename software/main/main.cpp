@@ -1,17 +1,15 @@
 #include "gap.hpp"
-#include "gatt_svc.hpp"
+#include "gatt.hpp"
 #include "heart_rate.hpp"
 #include "led.hpp"
 #include "pid.hpp"
 #include "pwm.hpp"
-
 #include <stdexcept>
 #include <string>
 
 extern "C" {
 #include "esp_err.h"
 #include "esp_log.h"
-#include "host/ble_hs.h"
 #include "nimble/nimble_port.h"
 #include "nvs_flash.h"
 #include <freertos/FreeRTOS.h>
@@ -34,12 +32,16 @@ void on_stack_reset(int reason) {
   ESP_LOGI("GATT-Server", "nimble stack reset, reset reason: %d", reason);
 }
 
-void on_stack_sync() { advertizing_init(); }
+void on_stack_sync() { ble::gap::advertizing_init(); }
+void ble_gatt_server_register_callback(struct ble_gatt_register_ctxt *ctxt,
+                                       void *arg) {
+  ble::gatt::server_register_cb(ctxt, arg);
+}
 
 void nimble_host_config_init(void) {
   ble_hs_cfg.reset_cb = on_stack_reset;
   ble_hs_cfg.sync_cb = on_stack_sync;
-  ble_hs_cfg.gatts_register_cb = gatt_svr_register_cb;
+  ble_hs_cfg.gatts_register_cb = ble_gatt_server_register_callback;
   ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
 
   ble_store_config_init();
@@ -59,7 +61,7 @@ void heart_rate_task(void *param) {
   while (true) {
     update_heart_rate();
     ESP_LOGI("GATT-Server", "heart rate updated to %d", get_heart_rate());
-    send_heart_rate_indication();
+    ble::gatt::send_heart_rate_indication();
     vTaskDelay(100);
   }
 
@@ -129,8 +131,8 @@ extern "C" void app_main() {
     led_init();
     prepare_nvm();
     init_nimble_host();
-    gap_init();
-    gatt_svc_init();
+    ble::gap::init();
+    ble::gatt::service_init();
     nimble_host_config_init();
     xTaskCreate(nimble_host_task, "NimBLE Host", 4 * 1024, nullptr, 5, nullptr);
     xTaskCreate(heart_rate_task, "Heart Rate", 4 * 1024, nullptr, 5, nullptr);

@@ -1,23 +1,21 @@
 #include "gap.hpp"
-#include "gatt_svc.hpp"
+#include "gatt.hpp"
 #include <stdexcept>
 
 extern "C" {
-#include "host/ble_gap.h"
-#include "services/gap/ble_svc_gap.h"
-#include <stdio.h>
-#include <string.h>
-
 #include "esp_log.h"
-
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
+#include "host/ble_gap.h"
 #include "host/ble_hs.h"
 #include "host/util/util.h"
-
 #include "nimble/ble.h"
+#include "services/gap/ble_svc_gap.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <stdio.h>
+#include <string.h>
 }
+
+namespace ble::gap {
 
 namespace {
 inline void format_addr(char *addr_str, uint8_t addr[]);
@@ -132,7 +130,7 @@ void start_advertising() {
  * NimBLE applies an event-driven model to keep GAP service going
  * gap_event_handler is a callback function registered when calling
  * ble_gap_adv_start API and called when a GAP event arrives */
-int gap_event_handler(struct ble_gap_event *event, void *arg) {
+int event_handler(struct ble_gap_event *event, void *arg) {
   struct ble_gap_conn_desc desc;
 
   switch (event->type) {
@@ -214,7 +212,7 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
              event->subscribe.cur_notify, event->subscribe.prev_indicate,
              event->subscribe.cur_indicate);
 
-    gatt_svr_subscribe_cb(event);
+    ble::gatt::subscribe_cb(event);
     return 0;
 
   case BLE_GAP_EVENT_MTU:
@@ -251,10 +249,11 @@ void advertizing_init() {
   start_advertising();
 }
 
-void gap_init() {
+void init() {
   ble_svc_gap_init();
 
   if (ble_svc_gap_device_name_set("NimBLE-GATT")) {
     std::runtime_error("failed to set device name to NimBLE-GATT");
   }
 }
+} // namespace ble::gap

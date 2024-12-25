@@ -1,4 +1,5 @@
 #include "gatt_svc.hpp"
+#include "gap.hpp"
 #include "heart_rate.hpp"
 #include "led.hpp"
 #include <array>
@@ -6,48 +7,50 @@
 #include <stdexcept>
 
 extern "C" {
-#include "host/ble_gap.h"
+#include "esp_log.h"
 #include "host/ble_gatt.h"
 #include "services/gatt/ble_svc_gatt.h"
 }
 
+namespace ble::gatt {
 namespace {
 
-int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                          struct ble_gatt_access_ctxt *ctxt, void *arg);
+int heart_rate_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
+                                     struct ble_gatt_access_ctxt *ctxt,
+                                     void *arg);
 
-int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                   struct ble_gatt_access_ctxt *ctxt, void *arg);
+int led_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
+                              struct ble_gatt_access_ctxt *ctxt, void *arg);
 
 const ble_uuid16_t heart_rate_svc_uuid = BLE_UUID16_INIT(0x180D);
 
-uint8_t heart_rate_chr_val[2] = {0};
-uint16_t heart_rate_chr_val_handle;
-const ble_uuid16_t heart_rate_chr_uuid = BLE_UUID16_INIT(0x2A37);
+uint8_t heart_rate_characteristic_val[2] = {0};
+uint16_t heart_rate_characteristic_val_handle;
+const ble_uuid16_t heart_rate_characteristic_uuid = BLE_UUID16_INIT(0x2A37);
 
-uint16_t heart_rate_chr_conn_handle = 0;
-bool heart_rate_chr_conn_handle_inited = false;
+uint16_t heart_rate_characteristic_conn_handle = 0;
+bool heart_rate_characteristic_conn_handle_inited = false;
 bool heart_rate_ind_status = false;
 
 /* Automation IO service */
 const ble_uuid16_t auto_io_svc_uuid = BLE_UUID16_INIT(0x1815);
-uint16_t led_chr_val_handle;
-const ble_uuid128_t led_chr_uuid =
+uint16_t led_characteristic_val_handle;
+const ble_uuid128_t led_characteristic_uuid =
     BLE_UUID128_INIT(0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef,
                      0x12, 0x12, 0x25, 0x15, 0x00, 0x00);
 
 const struct ble_gatt_chr_def heart_rate_characteristic = {
-    .uuid = &heart_rate_chr_uuid.u,
-    .access_cb = heart_rate_chr_access,
+    .uuid = &heart_rate_characteristic_uuid.u,
+    .access_cb = heart_rate_characteristic_access,
     .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_INDICATE,
-    .val_handle = &heart_rate_chr_val_handle,
+    .val_handle = &heart_rate_characteristic_val_handle,
 };
 
 const struct ble_gatt_chr_def led_characteristic = {
-    .uuid = &led_chr_uuid.u,
-    .access_cb = led_chr_access,
+    .uuid = &led_characteristic_uuid.u,
+    .access_cb = led_characteristic_access,
     .flags = BLE_GATT_CHR_F_WRITE,
-    .val_handle = &led_chr_val_handle,
+    .val_handle = &led_characteristic_val_handle,
 };
 
 std::array<ble_gatt_chr_def, 2> led_characteristic_array = {
@@ -67,19 +70,16 @@ const struct ble_gatt_svc_def led_service_cfg = {
     .characteristics = led_characteristic_array.data(),
 };
 
-const struct ble_gatt_svc_def gatt_svr_svcs[] = {
+const struct ble_gatt_svc_def gatt_server_services[] = {
     heart_rate_service_cfg,
     led_service_cfg,
     {0},
 };
 
-int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                          struct ble_gatt_access_ctxt *ctxt, void *arg) {
-  switch (ctxt->op) {
-
-  /* Read characteristic event */
-  case BLE_GATT_ACCESS_OP_READ_CHR:
-    /* Verify connection handle */
+int heart_rate_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
+                                     struct ble_gatt_access_ctxt *ctxt,
+                                     void *arg) {
+  if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR) {
     if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
       ESP_LOGI("GATT-Server",
                "characteristic read; conn_handle=%d attr_handle=%d",
@@ -91,32 +91,23 @@ int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
     }
 
     /* Verify attribute handle */
-    if (attr_handle == heart_rate_chr_val_handle) {
+    if (attr_handle == heart_rate_characteristic_val_handle) {
       /* Update access buffer value */
-      heart_rate_chr_val[1] = get_heart_rate();
-      int rc = os_mbuf_append(ctxt->om, &heart_rate_chr_val,
-                              sizeof(heart_rate_chr_val));
+      heart_rate_characteristic_val[1] = get_heart_rate();
+      int rc = os_mbuf_append(ctxt->om, &heart_rate_characteristic_val,
+                              sizeof(heart_rate_characteristic_val));
       return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
-    } else {
-      throw std::runtime_error("heart rate access failed");
     }
-
-  /* Unknown event */
-  default:
+  } else {
     throw std::runtime_error(
         "unexpected access operation to heart rate characteristic");
   }
+  return -1;
 }
 
-int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                   struct ble_gatt_access_ctxt *ctxt, void *arg) {
-  /* Handle access events */
-  /* Note: LED characteristic is write only */
-  switch (ctxt->op) {
-
-  /* Write characteristic event */
-  case BLE_GATT_ACCESS_OP_WRITE_CHR:
-    /* Verify connection handle */
+int led_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
+                              struct ble_gatt_access_ctxt *ctxt, void *arg) {
+  if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
     if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
       ESP_LOGI("GATT-Server",
                "characteristic write; conn_handle=%d attr_handle=%d",
@@ -128,7 +119,7 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
     }
 
     /* Verify attribute handle */
-    if (attr_handle == led_chr_val_handle) {
+    if (attr_handle == led_characteristic_val_handle) {
       /* Verify access buffer length */
       if (ctxt->om->om_len == 1) {
         /* Turn the LED on or off according to the operation bit */
@@ -142,22 +133,36 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
       } else {
         throw std::runtime_error("unexpected access to led characteristic");
       }
-      return 0;
-    } else {
-
-      throw std::runtime_error("unexpected access to led characteristic");
     }
 
-  default:
+    return 0;
+  } else {
     throw std::runtime_error("unexpected access to led characteristic");
   }
 }
 } // namespace
 
 void send_heart_rate_indication() {
-  if (heart_rate_ind_status && heart_rate_chr_conn_handle_inited) {
-    ble_gatts_indicate(heart_rate_chr_conn_handle, heart_rate_chr_val_handle);
+  if (heart_rate_ind_status && heart_rate_characteristic_conn_handle_inited) {
+    ble_gatts_indicate(heart_rate_characteristic_conn_handle,
+                       heart_rate_characteristic_val_handle);
     ESP_LOGI("GATT-Server", "heart rate indication sent!");
+  }
+}
+
+void server_subscribe_cb(ble_gap_event *event) {
+  if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+    ESP_LOGI("GATT-Server", "subscribe event; conn_handle=%d attr_handle=%d",
+             event->subscribe.conn_handle, event->subscribe.attr_handle);
+  } else {
+    ESP_LOGI("GATT-Server", "subscribe by nimble stack; attr_handle=%d",
+             event->subscribe.attr_handle);
+  }
+
+  if (event->subscribe.attr_handle == heart_rate_characteristic_val_handle) {
+    heart_rate_characteristic_conn_handle = event->subscribe.conn_handle;
+    heart_rate_characteristic_conn_handle_inited = true;
+    heart_rate_ind_status = event->subscribe.cur_indicate;
   }
 }
 
@@ -166,7 +171,7 @@ void send_heart_rate_indication() {
  *      - Service register event
  *      - Characteristic register event
  *      - Descriptor register event */
-void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
+void server_register_cb(ble_gatt_register_ctxt *ctxt, void *arg) {
   char buf[BLE_UUID_STR_LEN];
 
   switch (ctxt->op) {
@@ -191,31 +196,7 @@ void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
     break;
 
   default:
-    std::runtime_error("unknown attribute registered");
-    break;
-  }
-}
-
-/*
- *  GATT server subscribe event callback
- *      1. Update heart rate subscription status
- */
-void gatt_svr_subscribe_cb(struct ble_gap_event *event) {
-  /* Check connection handle */
-  if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-    ESP_LOGI("GATT-Server", "subscribe event; conn_handle=%d attr_handle=%d",
-             event->subscribe.conn_handle, event->subscribe.attr_handle);
-  } else {
-    ESP_LOGI("GATT-Server", "subscribe by nimble stack; attr_handle=%d",
-             event->subscribe.attr_handle);
-  }
-
-  /* Check attribute handle */
-  if (event->subscribe.attr_handle == heart_rate_chr_val_handle) {
-    /* Update heart rate subscription status */
-    heart_rate_chr_conn_handle = event->subscribe.conn_handle;
-    heart_rate_chr_conn_handle_inited = true;
-    heart_rate_ind_status = event->subscribe.cur_indicate;
+    throw std::runtime_error("unknown attribute registered");
   }
 }
 
@@ -224,15 +205,16 @@ void gatt_svr_subscribe_cb(struct ble_gap_event *event) {
  *      1. Initialize GATT service
  *      2. Update NimBLE host GATT services counter
  *      3. Add GATT services to server */
-void gatt_svc_init() {
+void service_init() {
 
   ble_svc_gatt_init();
 
-  if (ble_gatts_count_cfg(gatt_svr_svcs)) {
+  if (ble_gatts_count_cfg(gatt_server_services)) {
     std::runtime_error("gatt counter error");
   }
 
-  if (ble_gatts_add_svcs(gatt_svr_svcs)) {
+  if (ble_gatts_add_svcs(gatt_server_services)) {
     std::runtime_error("gatt add service failed");
   }
 }
+} // namespace ble::gatt
