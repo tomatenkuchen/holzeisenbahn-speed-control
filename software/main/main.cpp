@@ -34,7 +34,7 @@ void on_stack_reset(int reason) {
   ESP_LOGI("GATT-Server", "nimble stack reset, reset reason: %d", reason);
 }
 
-void on_stack_sync(void) { adv_init(); }
+void on_stack_sync() { advertizing_init(); }
 
 void nimble_host_config_init(void) {
   ble_hs_cfg.reset_cb = on_stack_reset;

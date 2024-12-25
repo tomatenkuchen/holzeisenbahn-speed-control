@@ -1,4 +1,4 @@
 #pragma once
 
-void adv_init();
+void advertizing_init();
 void gap_init();

@@ -227,7 +227,7 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
 }
 } // namespace
 
-void adv_init() {
+void advertizing_init() {
   char addr_str[18] = {0};
 
   /* Make sure we have proper BT identity address set (random preferred) */
