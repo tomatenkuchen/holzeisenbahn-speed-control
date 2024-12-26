@@ -1,5 +1,4 @@
 #include "gatt.hpp"
-#include "gap.hpp"
 #include "heart_rate.hpp"
 #include "led.hpp"
 #include <array>
@@ -22,22 +21,46 @@ int heart_rate_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
 int led_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
                               struct ble_gatt_access_ctxt *ctxt, void *arg);
 
-const ble_uuid16_t heart_rate_svc_uuid = BLE_UUID16_INIT(0x180D);
+const ble_uuid16_t heart_rate_service_uuid = {
+    .u =
+        {
+            .type = BLE_UUID_TYPE_16,
+        },
+    .value = 0x180D,
+};
 
 uint8_t heart_rate_characteristic_val[2] = {0};
 uint16_t heart_rate_characteristic_val_handle;
-const ble_uuid16_t heart_rate_characteristic_uuid = BLE_UUID16_INIT(0x2A37);
+const ble_uuid16_t heart_rate_characteristic_uuid = {
+    .u =
+        {
+            .type = BLE_UUID_TYPE_16,
+        },
+    .value = 0x2A37,
+};
 
 uint16_t heart_rate_characteristic_conn_handle = 0;
 bool heart_rate_characteristic_conn_handle_inited = false;
 bool heart_rate_ind_status = false;
 
 /* Automation IO service */
-const ble_uuid16_t auto_io_svc_uuid = BLE_UUID16_INIT(0x1815);
+const ble_uuid16_t auto_io_svc_uuid = {
+    .u =
+        {
+            .type = BLE_UUID_TYPE_16,
+        },
+    .value = 0x1815,
+};
+
 uint16_t led_characteristic_val_handle;
-const ble_uuid128_t led_characteristic_uuid =
-    BLE_UUID128_INIT(0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef,
-                     0x12, 0x12, 0x25, 0x15, 0x00, 0x00);
+const ble_uuid128_t led_characteristic_uuid = {
+    .u =
+        {
+            .type = BLE_UUID_TYPE_128,
+        },
+    .value = {0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef, 0x12,
+              0x12, 0x25, 0x15, 0x00, 0x00},
+};
 
 const struct ble_gatt_chr_def heart_rate_characteristic = {
     .uuid = &heart_rate_characteristic_uuid.u,
@@ -60,7 +83,7 @@ std::array<ble_gatt_chr_def, 2> heart_rate_characteristic_array = {
 
 const struct ble_gatt_svc_def heart_rate_service_cfg = {
     .type = BLE_GATT_SVC_TYPE_PRIMARY,
-    .uuid = &heart_rate_svc_uuid.u,
+    .uuid = &heart_rate_service_uuid.u,
     .characteristics = heart_rate_characteristic_array.data(),
 };
 
@@ -90,9 +113,9 @@ int heart_rate_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
                attr_handle);
     }
 
-    /* Verify attribute handle */
+    // Verify attribute handle
     if (attr_handle == heart_rate_characteristic_val_handle) {
-      /* Update access buffer value */
+      // Update access buffer value
       heart_rate_characteristic_val[1] = get_heart_rate();
       int rc = os_mbuf_append(ctxt->om, &heart_rate_characteristic_val,
                               sizeof(heart_rate_characteristic_val));
