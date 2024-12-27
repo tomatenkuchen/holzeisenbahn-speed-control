@@ -118,22 +118,18 @@ void start_advertising() {
   ESP_LOGI("GATT-Server", "advertising started!");
 }
 
-/*
+/**
  * NimBLE applies an event-driven model to keep GAP service going
  * gap_event_handler is a callback function registered when calling
  * ble_gap_adv_start API and called when a GAP event arrives */
 int gap_event_handler(struct ble_gap_event *event, void *arg) {
-
   switch (event->type) {
-
   case BLE_GAP_EVENT_CONNECT:
-    /* A new connection was established or a connection attempt failed. */
-    ESP_LOGI("GATT-Server", "connection %s; status=%d",
-             event->connect.status == 0 ? "established" : "failed",
-             event->connect.status);
-
     /* Connection succeeded */
     if (event->connect.status == 0) {
+      /* A new connection was established or a connection attempt failed. */
+      ESP_LOGI("GATT-Server", "connection established");
+
       /* Check connection handle */
       ble_gap_conn_desc desc;
       if (ble_gap_conn_find(event->connect.conn_handle, &desc)) {
@@ -152,16 +148,15 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
       }
     } else {
       start_advertising();
+      ESP_LOGI("GATT-Server", "connection failed; status=%d",
+               event->connect.status);
     }
     return 0;
 
   case BLE_GAP_EVENT_DISCONNECT:
-    /* A connection was terminated, print connection descriptor */
+    start_advertising();
     ESP_LOGI("GATT-Server", "disconnected from peer; reason=%d",
              event->disconnect.reason);
-
-    /* Restart advertising */
-    start_advertising();
     return 0;
 
   case BLE_GAP_EVENT_CONN_UPDATE:
@@ -169,7 +164,6 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
     ESP_LOGI("GATT-Server", "connection updated; status=%d",
              event->conn_update.status);
 
-    /* Print connection descriptor */
     ble_gap_conn_desc desc;
     if (ble_gap_conn_find(event->conn_update.conn_handle, &desc)) {
       throw std::runtime_error("failed to find connection by handle");
@@ -178,16 +172,15 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
     return 0;
 
   case BLE_GAP_EVENT_ADV_COMPLETE:
-    /* Advertising completed, restart advertising */
+    start_advertising();
     ESP_LOGI("GATT-Server", "advertise complete; reason=%d",
              event->adv_complete.reason);
-    start_advertising();
     return 0;
 
   case BLE_GAP_EVENT_NOTIFY_TX:
     if ((event->notify_tx.status != 0) &&
         (event->notify_tx.status != BLE_HS_EDONE)) {
-      /* Print notification info on error */
+      // gap event error
       ESP_LOGI("GATT-Server",
                "notify event; conn_handle=%d attr_handle=%d "
                "status=%d is_indication=%d",
