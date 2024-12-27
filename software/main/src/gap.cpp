@@ -14,35 +14,35 @@ extern "C" {
 namespace ble::gap {
 
 namespace {
-inline void format_addr(char *addr_str, uint8_t addr[]);
+inline void format_addr(char *address_string, uint8_t addr[]);
 void print_conn_desc(ble_gap_conn_desc *desc);
 void start_advertising();
 int gap_event_handler(struct ble_gap_event *event, void *arg);
 
 uint8_t own_addr_type;
-uint8_t addr_val[6] = {0};
+uint8_t address_value[6] = {0};
 std::string esp_uri = "\x17//espressif.com";
 
 /* Private functions */
-inline void format_addr(char *addr_str, uint8_t addr[]) {
-  sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2],
-          addr[3], addr[4], addr[5]);
+inline void format_addr(char *address_string, uint8_t addr[]) {
+  sprintf(address_string, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1],
+          addr[2], addr[3], addr[4], addr[5]);
 }
 
 void print_conn_desc(ble_gap_conn_desc *desc) {
-  char addr_str[18] = {0};
+  char address_string[18] = {0};
 
   /* Connection handle */
   ESP_LOGI("GATT-Server", "connection handle: %d", desc->conn_handle);
 
-  format_addr(addr_str, desc->our_id_addr.val);
+  format_addr(address_string, desc->our_id_addr.val);
   ESP_LOGI("GATT-Server", "device id address: type=%d, value=%s",
-           desc->our_id_addr.type, addr_str);
+           desc->our_id_addr.type, address_string);
 
   /* Peer ID address */
-  format_addr(addr_str, desc->peer_id_addr.val);
+  format_addr(address_string, desc->peer_id_addr.val);
   ESP_LOGI("GATT-Server", "peer id address: type=%d, value=%s",
-           desc->peer_id_addr.type, addr_str);
+           desc->peer_id_addr.type, address_string);
 
   /* Connection info */
   ESP_LOGI("GATT-Server",
@@ -84,7 +84,7 @@ void start_advertising() {
 
   ble_hs_adv_fields response_fields = {0};
   /* Set device address */
-  response_fields.device_addr = addr_val;
+  response_fields.device_addr = address_value;
   response_fields.device_addr_type = own_addr_type;
   response_fields.device_addr_is_present = 1;
 
@@ -111,8 +111,8 @@ void start_advertising() {
   advertizing_parameters.itvl_max = BLE_GAP_ADV_ITVL_MS(510);
 
   /* Start advertising */
-  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER,
-                        &advertizing_parameters, gap_event_handler, NULL)) {
+  if (ble_gap_adv_start(own_addr_type, nullptr, BLE_HS_FOREVER,
+                        &advertizing_parameters, gap_event_handler, nullptr)) {
     throw std::runtime_error("failed to start advertising");
   }
   ESP_LOGI("GATT-Server", "advertising started!");
@@ -123,7 +123,6 @@ void start_advertising() {
  * gap_event_handler is a callback function registered when calling
  * ble_gap_adv_start API and called when a GAP event arrives */
 int gap_event_handler(struct ble_gap_event *event, void *arg) {
-  struct ble_gap_conn_desc desc;
 
   switch (event->type) {
 
@@ -136,6 +135,7 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
     /* Connection succeeded */
     if (event->connect.status == 0) {
       /* Check connection handle */
+      ble_gap_conn_desc desc;
       if (ble_gap_conn_find(event->connect.conn_handle, &desc)) {
         throw std::runtime_error("failed to find connection by handle");
       }
@@ -170,6 +170,7 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
              event->conn_update.status);
 
     /* Print connection descriptor */
+    ble_gap_conn_desc desc;
     if (ble_gap_conn_find(event->conn_update.conn_handle, &desc)) {
       throw std::runtime_error("failed to find connection by handle");
     }
@@ -229,13 +230,13 @@ void advertizing_init() {
   }
 
   /* Printing ADDR */
-  if (ble_hs_id_copy_addr(own_addr_type, addr_val, nullptr)) {
+  if (ble_hs_id_copy_addr(own_addr_type, address_value, nullptr)) {
     throw std::runtime_error("failed to copy device address");
   }
 
-  char addr_str[18] = {0};
-  format_addr(addr_str, addr_val);
-  ESP_LOGI("GATT-Server", "device address: %s", addr_str);
+  char address_string[18] = {0};
+  format_addr(address_string, address_value);
+  ESP_LOGI("GATT-Server", "device address: %s", address_string);
 
   start_advertising();
 }
