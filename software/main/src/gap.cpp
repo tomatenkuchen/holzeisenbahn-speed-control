@@ -1,32 +1,27 @@
 #include "gap.hpp"
 #include "gatt.hpp"
 #include <stdexcept>
+#include <string>
 
 extern "C" {
 #include "esp_log.h"
 #include "host/ble_gap.h"
 #include "host/ble_hs.h"
 #include "host/util/util.h"
-#include "nimble/ble.h"
 #include "services/gap/ble_svc_gap.h"
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <stdio.h>
-#include <string.h>
 }
 
 namespace ble::gap {
 
 namespace {
 inline void format_addr(char *addr_str, uint8_t addr[]);
-void print_conn_desc(struct ble_gap_conn_desc *desc);
-void start_advertising(void);
+void print_conn_desc(ble_gap_conn_desc *desc);
+void start_advertising();
 int gap_event_handler(struct ble_gap_event *event, void *arg);
 
 uint8_t own_addr_type;
 uint8_t addr_val[6] = {0};
-uint8_t esp_uri[] = {0x17, '/', '/', 'e', 's', 'p', 'r', 'e',
-                     's',  's', 'i', 'f', '.', 'c', 'o', 'm'};
+std::string esp_uri = "\x17//espressif.com";
 
 /* Private functions */
 inline void format_addr(char *addr_str, uint8_t addr[]) {
@@ -34,14 +29,12 @@ inline void format_addr(char *addr_str, uint8_t addr[]) {
           addr[3], addr[4], addr[5]);
 }
 
-void print_conn_desc(struct ble_gap_conn_desc *desc) {
-  /* Local variables */
+void print_conn_desc(ble_gap_conn_desc *desc) {
   char addr_str[18] = {0};
 
   /* Connection handle */
   ESP_LOGI("GATT-Server", "connection handle: %d", desc->conn_handle);
 
-  /* Local ID address */
   format_addr(addr_str, desc->our_id_addr.val);
   ESP_LOGI("GATT-Server", "device id address: type=%d, value=%s",
            desc->our_id_addr.type, addr_str);
@@ -61,66 +54,65 @@ void print_conn_desc(struct ble_gap_conn_desc *desc) {
 }
 
 void start_advertising() {
-  const char *name;
-  struct ble_hs_adv_fields adv_fields = {0};
-  struct ble_hs_adv_fields rsp_fields = {0};
-  struct ble_gap_adv_params adv_params = {0};
+  const char *name = ble_svc_gap_device_name();
 
+  ble_hs_adv_fields advertizing_fields = {0};
   /* Set advertising flags */
-  adv_fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
+  advertizing_fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
 
   /* Set device name */
-  name = ble_svc_gap_device_name();
-  adv_fields.name = (uint8_t *)name;
-  adv_fields.name_len = strlen(name);
-  adv_fields.name_is_complete = 1;
+  advertizing_fields.name = (uint8_t *)name;
+  advertizing_fields.name_len = strlen(name);
+  advertizing_fields.name_is_complete = 1;
 
   /* Set device tx power */
-  adv_fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
-  adv_fields.tx_pwr_lvl_is_present = 1;
+  advertizing_fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
+  advertizing_fields.tx_pwr_lvl_is_present = 1;
 
   /* Set device appearance */
-  adv_fields.appearance = 0x200;
-  adv_fields.appearance_is_present = 1;
+  advertizing_fields.appearance = 0x200;
+  advertizing_fields.appearance_is_present = 1;
 
   /* Set device LE role */
-  adv_fields.le_role = 0;
-  adv_fields.le_role_is_present = 1;
+  advertizing_fields.le_role = 0;
+  advertizing_fields.le_role_is_present = 1;
 
   /* Set advertiement fields */
-  if (ble_gap_adv_set_fields(&adv_fields)) {
+  if (ble_gap_adv_set_fields(&advertizing_fields)) {
     throw std::runtime_error("failed to set advertising data");
   }
 
+  ble_hs_adv_fields response_fields = {0};
   /* Set device address */
-  rsp_fields.device_addr = addr_val;
-  rsp_fields.device_addr_type = own_addr_type;
-  rsp_fields.device_addr_is_present = 1;
+  response_fields.device_addr = addr_val;
+  response_fields.device_addr_type = own_addr_type;
+  response_fields.device_addr_is_present = 1;
 
   /* Set URI */
-  rsp_fields.uri = esp_uri;
-  rsp_fields.uri_len = sizeof(esp_uri);
+  response_fields.uri = reinterpret_cast<uint8_t const *>(esp_uri.c_str());
+  response_fields.uri_len = esp_uri.size();
 
   /* Set advertising interval */
-  rsp_fields.adv_itvl = BLE_GAP_ADV_ITVL_MS(500);
-  rsp_fields.adv_itvl_is_present = 1;
+  response_fields.adv_itvl = BLE_GAP_ADV_ITVL_MS(500);
+  response_fields.adv_itvl_is_present = 1;
 
   /* Set scan response fields */
-  if (ble_gap_adv_rsp_set_fields(&rsp_fields)) {
+  if (ble_gap_adv_rsp_set_fields(&response_fields)) {
     throw std::runtime_error("failed to set scan response data");
   }
 
+  ble_gap_adv_params advertizing_parameters = {0};
   /* Set non-connetable and general discoverable mode to be a beacon */
-  adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
-  adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+  advertizing_parameters.conn_mode = BLE_GAP_CONN_MODE_UND;
+  advertizing_parameters.disc_mode = BLE_GAP_DISC_MODE_GEN;
 
   /* Set advertising interval */
-  adv_params.itvl_min = BLE_GAP_ADV_ITVL_MS(500);
-  adv_params.itvl_max = BLE_GAP_ADV_ITVL_MS(510);
+  advertizing_parameters.itvl_min = BLE_GAP_ADV_ITVL_MS(500);
+  advertizing_parameters.itvl_max = BLE_GAP_ADV_ITVL_MS(510);
 
   /* Start advertising */
-  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params,
-                        gap_event_handler, NULL)) {
+  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER,
+                        &advertizing_parameters, gap_event_handler, NULL)) {
     throw std::runtime_error("failed to start advertising");
   }
   ESP_LOGI("GATT-Server", "advertising started!");
@@ -226,8 +218,6 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
 } // namespace
 
 void advertizing_init() {
-  char addr_str[18] = {0};
-
   /* Make sure we have proper BT identity address set (random preferred) */
   if (ble_hs_util_ensure_addr(0)) {
     throw std::runtime_error("device does not have any available bt address!");
@@ -239,13 +229,14 @@ void advertizing_init() {
   }
 
   /* Printing ADDR */
-  if (ble_hs_id_copy_addr(own_addr_type, addr_val, NULL)) {
+  if (ble_hs_id_copy_addr(own_addr_type, addr_val, nullptr)) {
     throw std::runtime_error("failed to copy device address");
   }
+
+  char addr_str[18] = {0};
   format_addr(addr_str, addr_val);
   ESP_LOGI("GATT-Server", "device address: %s", addr_str);
 
-  /* Start advertising. */
   start_advertising();
 }
 
