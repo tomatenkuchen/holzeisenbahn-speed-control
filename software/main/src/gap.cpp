@@ -237,7 +237,7 @@ void advertizing_init() {
 void init() {
   ble_svc_gap_init();
 
-  if (ble_svc_gap_device_name_set("NimBLE-GATT")) {
+  if (ble_svc_gap_device_name_set("tomato-ble")) {
     std::runtime_error("failed to set device name to NimBLE-GATT");
   }
 }

@@ -62,15 +62,14 @@ Service<ble_uuid16_t, 2> heart_rate{
         },
 };
 
-Service<ble_uuid128_t, 2> led = {
+Service<ble_uuid16_t, 2> led = {
     .uuid =
         {
             .u =
                 {
-                    .type = BLE_UUID_TYPE_128,
+                    .type = BLE_UUID_TYPE_16,
                 },
-            .value = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                      0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x15},
+            .value = 0x1815,
         },
     .is_indicated = false,
     .characteristic =
@@ -79,10 +78,9 @@ Service<ble_uuid128_t, 2> led = {
                 {
                     .u =
                         {
-                            .type = BLE_UUID_TYPE_128,
+                            .type = BLE_UUID_TYPE_16,
                         },
-                    .value = {0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15,
-                              0xde, 0xef, 0x12, 0x12, 0x25, 0x15, 0x00, 0x00},
+                    .value = 0x1234,
                 },
             .value = {0},
             .value_handle = 0,
