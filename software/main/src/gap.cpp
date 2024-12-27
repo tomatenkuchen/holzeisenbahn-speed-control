@@ -212,7 +212,7 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
              event->subscribe.cur_notify, event->subscribe.prev_indicate,
              event->subscribe.cur_indicate);
 
-    ble::gatt::server_subscribe_cb(event);
+    ble::gatt::service_subscribe_cb(event);
     return 0;
 
   case BLE_GAP_EVENT_MTU:

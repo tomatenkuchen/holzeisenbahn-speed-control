@@ -35,7 +35,7 @@ void on_stack_reset(int reason) {
 void on_stack_sync() { ble::gap::advertizing_init(); }
 void ble_gatt_server_register_callback(struct ble_gatt_register_ctxt *ctxt,
                                        void *arg) {
-  ble::gatt::server_register_cb(ctxt, arg);
+  ble::gatt::service_register_cb(ctxt, arg);
 }
 
 void nimble_host_config_init(void) {
