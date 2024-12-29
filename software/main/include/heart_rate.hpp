@@ -1,3 +1,11 @@
+/**
+ * @file heart_rate.hpp
+ * @brief heart rate mock module
+ * @author tomatenkuchen
+ * @date 2023-03-27
+ * @license GPLv2 @see license.md
+ */
+
 #pragma once
 
 #include <cstdint>

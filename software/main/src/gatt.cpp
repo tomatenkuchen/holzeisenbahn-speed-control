@@ -12,7 +12,7 @@ extern "C" {
 #include "services/gatt/ble_svc_gatt.h"
 }
 
-namespace ble::gatt {
+namespace ble {
 namespace {
 
 int heart_rate_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
@@ -21,73 +21,6 @@ int heart_rate_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
 
 int led_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
                               struct ble_gatt_access_ctxt *ctxt, void *arg);
-
-template <typename uuid_length, uint8_t N> struct Characteristic {
-  uuid_length uuid;
-  std::array<uint8_t, N> value = {0};
-  uint16_t value_handle;
-  uint16_t connection_handle_id;
-  bool is_connection_handle_initialized;
-};
-template <typename uuid_length, uint8_t N> struct Service {
-  uuid_length uuid;
-  bool is_indicated;
-  Characteristic<uuid_length, N> characteristic;
-};
-
-Service<ble_uuid16_t, 2> heart_rate{
-    .uuid =
-        {
-            .u =
-                {
-                    .type = BLE_UUID_TYPE_16,
-                },
-            .value = 0x180D,
-        },
-    .is_indicated = false,
-    .characteristic =
-        {
-            .uuid =
-                {
-                    .u =
-                        {
-                            .type = BLE_UUID_TYPE_16,
-                        },
-                    .value = 0x2A37,
-                },
-            .value = {0},
-            .value_handle = 0,
-            .connection_handle_id = 0,
-            .is_connection_handle_initialized = false,
-        },
-};
-
-Service<ble_uuid16_t, 2> led = {
-    .uuid =
-        {
-            .u =
-                {
-                    .type = BLE_UUID_TYPE_16,
-                },
-            .value = 0x1815,
-        },
-    .is_indicated = false,
-    .characteristic =
-        {
-            .uuid =
-                {
-                    .u =
-                        {
-                            .type = BLE_UUID_TYPE_16,
-                        },
-                    .value = 0x1234,
-                },
-            .value = {0},
-            .value_handle = 0,
-            .connection_handle_id = 0,
-            .is_connection_handle_initialized = false,
-        },
-};
 
 const ble_gatt_chr_def heart_rate_characteristic = {
     .uuid = &heart_rate.characteristic.uuid.u,
@@ -108,13 +41,13 @@ std::array<ble_gatt_chr_def, 2> led_characteristic_array = {
 std::array<ble_gatt_chr_def, 2> heart_rate_characteristic_array = {
     heart_rate_characteristic, ble_gatt_chr_def{0}};
 
-const struct ble_gatt_svc_def heart_rate_service_cfg = {
+const ble_gatt_svc_def heart_rate_service_cfg = {
     .type = BLE_GATT_SVC_TYPE_PRIMARY,
     .uuid = &heart_rate.uuid.u,
     .characteristics = heart_rate_characteristic_array.data(),
 };
 
-const struct ble_gatt_svc_def led_service_cfg = {
+const ble_gatt_svc_def led_service_cfg = {
     .type = BLE_GATT_SVC_TYPE_PRIMARY,
     .uuid = &led.uuid.u,
     .characteristics = led_characteristic_array.data(),
@@ -190,15 +123,6 @@ int led_characteristic_access(uint16_t conn_handle, uint16_t attr_handle,
 }
 } // namespace
 
-void send_heart_rate_indication() {
-  if (heart_rate.is_indicated &&
-      heart_rate.characteristic.is_connection_handle_initialized) {
-    ble_gatts_indicate(heart_rate.characteristic.connection_handle_id,
-                       heart_rate.characteristic.value_handle);
-    ESP_LOGI("GATT-Server", "heart rate indication sent!");
-  }
-}
-
 void service_subscribe_cb(ble_gap_event *event) {
   if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
     ESP_LOGI("GATT-Server", "subscribe event; conn_handle=%d attr_handle=%d",
@@ -250,12 +174,7 @@ void service_register_cb(ble_gatt_register_ctxt *ctxt, void *arg) {
   }
 }
 
-/*
- *  GATT server initialization
- *      1. Initialize GATT service
- *      2. Update NimBLE host GATT services counter
- *      3. Add GATT services to server */
-void service_init() {
+GATT::GATT() {
 
   ble_svc_gatt_init();
 
@@ -267,4 +186,4 @@ void service_init() {
     std::runtime_error("gatt add service failed");
   }
 }
-} // namespace ble::gatt
+} // namespace ble

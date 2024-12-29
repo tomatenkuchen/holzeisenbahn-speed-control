@@ -3,8 +3,10 @@
  * @brief controller module for PID type
  * @author tomatenkuchen
  * @date 2023-03-27
- * @license MIT
+ * @license GPLv2 @see license.md
  */
+
+#pragma once
 
 #include <concepts>
 #include <cstdint>

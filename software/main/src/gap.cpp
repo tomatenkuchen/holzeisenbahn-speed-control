@@ -11,17 +11,23 @@ extern "C" {
 #include "services/gap/ble_svc_gap.h"
 }
 
-namespace ble::gap {
+namespace ble {
 
-namespace {
+GAP::GAP(std::string const &app_name) {
+  ble_svc_gap_init();
+
+  if (ble_svc_gap_device_name_set(app_name.c_str())) {
+    throw std::runtime_error("failed to set device name to NimBLE-GATT");
+  }
+}
+GAP::~GAP() {}
+
 inline void format_addr(char *address_string, uint8_t addr[]);
 void print_conn_desc(ble_gap_conn_desc *desc);
 void start_advertising();
 int gap_event_handler(struct ble_gap_event *event, void *arg);
 
-uint8_t own_addr_type;
-uint8_t address_value[6] = {0};
-std::string esp_uri = "\x17//espressif.com";
+constexpr std::string esp_uri = "\x17//espressif.com";
 
 /* Private functions */
 inline void format_addr(char *address_string, uint8_t addr[]) {
@@ -53,7 +59,7 @@ void print_conn_desc(ble_gap_conn_desc *desc) {
            desc->sec_state.bonded);
 }
 
-void start_advertising() {
+void advertize() {
   const char *name = ble_svc_gap_device_name();
 
   ble_hs_adv_fields advertizing_fields = {0};
@@ -209,9 +215,8 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
 
   return 0;
 }
-} // namespace
 
-void advertizing_init() {
+void GAP::reinit_advertising() {
   /* Make sure we have proper BT identity address set (random preferred) */
   if (ble_hs_util_ensure_addr(0)) {
     throw std::runtime_error("device does not have any available bt address!");
@@ -231,14 +236,7 @@ void advertizing_init() {
   format_addr(address_string, address_value);
   ESP_LOGI("GATT-Server", "device address: %s", address_string);
 
-  start_advertising();
+  advertize();
 }
 
-void init() {
-  ble_svc_gap_init();
-
-  if (ble_svc_gap_device_name_set("tomato-ble")) {
-    std::runtime_error("failed to set device name to NimBLE-GATT");
-  }
-}
-} // namespace ble::gap
+} // namespace ble

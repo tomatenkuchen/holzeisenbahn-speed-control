@@ -1,7 +1,14 @@
+/**
+ * @file pwm.hpp
+ * @brief pwm controller for motor speed controll
+ * @author tomatenkuchen
+ * @date 2024-12-29
+ * @license GPLv2 @see license.md
+ */
+
 #pragma once
 
 #include "driver/ledc.h"
-#include "hal/ledc_types.h"
 
 class Pwm {
 public:

@@ -1,5 +1,4 @@
-#include "gap.hpp"
-#include "gatt.hpp"
+#include "ble.hpp"
 #include "heart_rate.hpp"
 #include "led.hpp"
 #include "pid.hpp"
@@ -8,60 +7,85 @@
 #include <string>
 
 extern "C" {
-#include "esp_err.h"
 #include "esp_log.h"
-#include "nimble/nimble_port.h"
-#include "nvs_flash.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-
-void ble_store_config_init(void);
 }
 
 int32_t speed_ref = 0;
+ble::BLE *ble_ptr;
 
 namespace {
 
+ble::GATT::Service<ble_uuid16_t, 2> heart_rate{
+    .uuid =
+        {
+            .u =
+                {
+                    .type = BLE_UUID_TYPE_16,
+                },
+            .value = 0x180D,
+        },
+    .is_indicated = false,
+    .characteristic =
+        {
+            .uuid =
+                {
+                    .u =
+                        {
+                            .type = BLE_UUID_TYPE_16,
+                        },
+                    .value = 0x2A37,
+                },
+            .value = {0},
+            .value_handle = 0,
+            .connection_handle_id = 0,
+            .is_connection_handle_initialized = false,
+        },
+};
+
+ble::GATT::Service<ble_uuid16_t, 2> led = {
+    .uuid =
+        {
+            .u =
+                {
+                    .type = BLE_UUID_TYPE_16,
+                },
+            .value = 0x1815,
+        },
+    .is_indicated = false,
+    .characteristic =
+        {
+            .uuid =
+                {
+                    .u =
+                        {
+                            .type = BLE_UUID_TYPE_16,
+                        },
+                    .value = 0x1234,
+                },
+            .value = {0},
+            .value_handle = 0,
+            .connection_handle_id = 0,
+            .is_connection_handle_initialized = false,
+        },
+};
+
 int32_t get_motor_speed() { return 0; }
 
-/**
- *  Stack event callback functions
- *      - on_stack_reset is called when host resets BLE stack due to errors
- *      - on_stack_sync is called when host has synced with controller */
-void on_stack_reset(int reason) {
-  ESP_LOGI("GATT-Server", "nimble stack reset, reset reason: %d", reason);
-}
-
-void on_stack_sync() { ble::gap::advertizing_init(); }
-void ble_gatt_server_register_callback(struct ble_gatt_register_ctxt *ctxt,
-                                       void *arg) {
-  ble::gatt::service_register_cb(ctxt, arg);
-}
-
-void nimble_host_config_init(void) {
-  ble_hs_cfg.reset_cb = on_stack_reset;
-  ble_hs_cfg.sync_cb = on_stack_sync;
-  ble_hs_cfg.gatts_register_cb = ble_gatt_server_register_callback;
-  ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
-
-  ble_store_config_init();
-}
-
 void nimble_host_task(void *param) {
-  ESP_LOGI("GATT-Server", "nimble host task has been started!");
-
-  nimble_port_run();
-
+  ESP_LOGI("main", "nimble host task started");
+  ble_ptr->nimble_host_task();
   vTaskDelete(nullptr);
 }
 
 void heart_rate_task(void *param) {
-  ESP_LOGI("GATT-Server", "heart rate task has been started!");
+  ESP_LOGI("main", "heart rate task started");
 
   while (true) {
     update_heart_rate();
     ESP_LOGI("GATT-Server", "heart rate updated to %d", get_heart_rate());
-    ble::gatt::send_heart_rate_indication();
+    ble_ptr->send_indication(heart_rate);
     vTaskDelay(100);
   }
 
@@ -106,37 +130,19 @@ void motor_task(void *param) {
   vTaskDelete(nullptr);
 }
 
-void prepare_nvm() {
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
-      ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    nvs_flash_erase();
-    ret = nvs_flash_init();
-  }
-  if (ret != ESP_OK) {
-    throw std::runtime_error(std::string("failed to initialize nvs flash"));
-  }
-}
-
-void init_nimble_host() {
-  if (nimble_port_init()) {
-    throw std::runtime_error(std::string("failed to initialize nimble stack"));
-  }
-}
-
 } // namespace
 
 extern "C" void app_main() {
   try {
+    ble::BLE ble("tomato-ble");
+    ble_ptr = &ble;
+
     led_init();
-    prepare_nvm();
-    init_nimble_host();
-    ble::gap::init();
-    ble::gatt::service_init();
-    nimble_host_config_init();
+
     xTaskCreate(nimble_host_task, "NimBLE Host", 4 * 1024, nullptr, 5, nullptr);
     xTaskCreate(heart_rate_task, "Heart Rate", 4 * 1024, nullptr, 5, nullptr);
     xTaskCreate(motor_task, "Motor Control", 4 * 1024, nullptr, 5, nullptr);
+
   } catch (std::runtime_error &e) {
     ESP_LOGE("main", "error occured: %s", e.what());
   }
