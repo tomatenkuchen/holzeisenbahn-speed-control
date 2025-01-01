@@ -14,7 +14,7 @@ public:
   GAP(std::string const &app_name);
   ~GAP();
 
-  void reinit_advertising();
+  void init_advertising();
   void advertize();
 
 private:

@@ -3,17 +3,13 @@
  * @brief ble gatt layer
  * @author tomatenkuchen
  * @date 2024-12-29
- * @license GPLv2 @see license.md
- */
+ * @license GPLv2 @see license.md */
 
 #pragma once
 
-#include <array>
-
-extern "C" {
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
-}
+#include <array>
 
 namespace ble {
 class GATT {
@@ -47,11 +43,12 @@ public:
   };
 
   GATT();
+
   void send_indication();
   void service_register_cb(ble_gatt_register_ctxt *ctxt, void *arg);
   void service_subscribe_cb(ble_gap_event *event);
 
 private:
-  std::array<...>;
+  std::array < Service<>;
 };
 } // namespace ble

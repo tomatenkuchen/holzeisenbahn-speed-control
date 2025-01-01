@@ -20,11 +20,12 @@ GAP::GAP(std::string const &app_name) {
     throw std::runtime_error("failed to set device name to NimBLE-GATT");
   }
 }
+
 GAP::~GAP() {}
 
 inline void format_addr(char *address_string, uint8_t addr[]);
 void print_conn_desc(ble_gap_conn_desc *desc);
-void start_advertising();
+void advertize();
 int gap_event_handler(struct ble_gap_event *event, void *arg);
 
 constexpr std::string esp_uri = "\x17//espressif.com";
@@ -153,14 +154,14 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
         throw std::runtime_error("failed to update connection parameters");
       }
     } else {
-      start_advertising();
+      advertize();
       ESP_LOGI("GATT-Server", "connection failed; status=%d",
                event->connect.status);
     }
     return 0;
 
   case BLE_GAP_EVENT_DISCONNECT:
-    start_advertising();
+    advertize();
     ESP_LOGI("GATT-Server", "disconnected from peer; reason=%d",
              event->disconnect.reason);
     return 0;
@@ -178,7 +179,7 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
     return 0;
 
   case BLE_GAP_EVENT_ADV_COMPLETE:
-    start_advertising();
+    advertize();
     ESP_LOGI("GATT-Server", "advertise complete; reason=%d",
              event->adv_complete.reason);
     return 0;
@@ -216,7 +217,7 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
   return 0;
 }
 
-void GAP::reinit_advertising() {
+void GAP::init_advertising() {
   /* Make sure we have proper BT identity address set (random preferred) */
   if (ble_hs_util_ensure_addr(0)) {
     throw std::runtime_error("device does not have any available bt address!");
