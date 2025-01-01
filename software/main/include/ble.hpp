@@ -10,12 +10,16 @@
 
 #include "gap.hpp"
 #include "gatt.hpp"
-#include "host/ble_esp_gap.h"
+#include "host/ble_gatt.h"
 #include "nimble.hpp"
 
 namespace ble {
 
 class BLE {
+  Nimble nimble;
+  GAP gap;
+  GATT gatt;
+
 public:
   BLE(std::string const &app_name);
 
@@ -26,10 +30,6 @@ public:
   void send_indication(GATT::Service<uuid_type, N> service);
 
 private:
-  Nimble nimble;
-  GAP gap;
-  GATT gatt;
-
   void init_nimble_host();
   void prepare_nvm();
   void nimble_host_config_init();

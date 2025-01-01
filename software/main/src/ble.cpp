@@ -5,9 +5,7 @@
 
 namespace ble {
 
-BLE::BLE(std::string const &app_name) : gap(app_name) {
-  ble::gatt::service_init();
-}
+BLE::BLE(std::string const &app_name) : gap(app_name) { gatt.service_init(); }
 
 void BLE::nimble_host_task() { ble_nimble_port_run(); }
 

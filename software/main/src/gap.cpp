@@ -13,7 +13,10 @@ extern "C" {
 
 namespace ble {
 
-GAP::GAP(std::string const &app_name) {
+void format_addr(char *address_string, uint8_t addr[]);
+void print_conn_desc(ble_gap_conn_desc *desc);
+
+GAP::GAP(std::string const &app_name) : app_name{app_name} {
   ble_svc_gap_init();
 
   if (ble_svc_gap_device_name_set(app_name.c_str())) {
@@ -21,17 +24,12 @@ GAP::GAP(std::string const &app_name) {
   }
 }
 
-GAP::~GAP() {}
-
-inline void format_addr(char *address_string, uint8_t addr[]);
-void print_conn_desc(ble_gap_conn_desc *desc);
-void advertize();
-int gap_event_handler(struct ble_gap_event *event, void *arg);
+int GAP::gap_event_handler(struct ble_gap_event *event, void *arg);
 
 constexpr std::string esp_uri = "\x17//espressif.com";
 
 /* Private functions */
-inline void format_addr(char *address_string, uint8_t addr[]) {
+void format_addr(char *address_string, uint8_t addr[]) {
   sprintf(address_string, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1],
           addr[2], addr[3], addr[4], addr[5]);
 }
@@ -60,16 +58,18 @@ void print_conn_desc(ble_gap_conn_desc *desc) {
            desc->sec_state.bonded);
 }
 
-void advertize() {
-  const char *name = ble_svc_gap_device_name();
+void GAP::advertize(bool init) {
+  if (init) {
+    init_advertising();
+  }
 
   ble_hs_adv_fields advertizing_fields = {0};
   /* Set advertising flags */
   advertizing_fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
 
   /* Set device name */
-  advertizing_fields.name = (uint8_t *)name;
-  advertizing_fields.name_len = strlen(name);
+  advertizing_fields.name = app_name.c_str();
+  advertizing_fields.name_len = app_name.size();
   advertizing_fields.name_is_complete = 1;
 
   /* Set device tx power */
@@ -129,7 +129,7 @@ void advertize() {
  * NimBLE applies an event-driven model to keep GAP service going
  * gap_event_handler is a callback function registered when calling
  * ble_gap_adv_start API and called when a GAP event arrives */
-int gap_event_handler(struct ble_gap_event *event, void *arg) {
+int GAP::gap_event_handler(struct ble_gap_event *event, void *arg) {
   switch (event->type) {
   case BLE_GAP_EVENT_CONNECT:
     /* Connection succeeded */
@@ -236,8 +236,6 @@ void GAP::init_advertising() {
   char address_string[18] = {0};
   format_addr(address_string, address_value);
   ESP_LOGI("GATT-Server", "device address: %s", address_string);
-
-  advertize();
 }
 
 } // namespace ble

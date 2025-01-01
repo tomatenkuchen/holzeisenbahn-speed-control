@@ -10,15 +10,16 @@
 
 namespace ble {
 class GAP {
-public:
-  GAP(std::string const &app_name);
-  ~GAP();
-
-  void init_advertising();
-  void advertize();
-
-private:
   uint8_t own_addr_type;
   uint8_t address_value[6] = {0};
+  std::string app_name;
+
+public:
+  GAP(std::string const &app_name);
+
+  void advertize(bool init = false);
+
+private:
+  void init_advertising();
 };
 } // namespace ble
