@@ -1,5 +1,4 @@
 #include "gap.hpp"
-#include "gatt.hpp"
 #include <stdexcept>
 #include <string>
 
@@ -11,10 +10,11 @@ extern "C" {
 #include "services/gap/ble_svc_gap.h"
 }
 
-namespace ble {
-
+int gap_event_handler(struct ble_gap_event *event, void *arg);
 void format_addr(char *address_string, uint8_t addr[]);
 void print_conn_desc(ble_gap_conn_desc *desc);
+
+namespace ble {
 
 GAP::GAP(std::string const &app_name) : app_name{app_name} {
   ble_svc_gap_init();
@@ -24,39 +24,7 @@ GAP::GAP(std::string const &app_name) : app_name{app_name} {
   }
 }
 
-int GAP::gap_event_handler(struct ble_gap_event *event, void *arg);
-
 constexpr std::string esp_uri = "\x17//espressif.com";
-
-/* Private functions */
-void format_addr(char *address_string, uint8_t addr[]) {
-  sprintf(address_string, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1],
-          addr[2], addr[3], addr[4], addr[5]);
-}
-
-void print_conn_desc(ble_gap_conn_desc *desc) {
-  char address_string[18] = {0};
-
-  /* Connection handle */
-  ESP_LOGI("GATT-Server", "connection handle: %d", desc->conn_handle);
-
-  format_addr(address_string, desc->our_id_addr.val);
-  ESP_LOGI("GATT-Server", "device id address: type=%d, value=%s",
-           desc->our_id_addr.type, address_string);
-
-  /* Peer ID address */
-  format_addr(address_string, desc->peer_id_addr.val);
-  ESP_LOGI("GATT-Server", "peer id address: type=%d, value=%s",
-           desc->peer_id_addr.type, address_string);
-
-  /* Connection info */
-  ESP_LOGI("GATT-Server",
-           "conn_itvl=%d, conn_latency=%d, supervision_timeout=%d, "
-           "encrypted=%d, authenticated=%d, bonded=%d\n",
-           desc->conn_itvl, desc->conn_latency, desc->supervision_timeout,
-           desc->sec_state.encrypted, desc->sec_state.authenticated,
-           desc->sec_state.bonded);
-}
 
 void GAP::advertize(bool init) {
   if (init) {
@@ -125,11 +93,32 @@ void GAP::advertize(bool init) {
   ESP_LOGI("GATT-Server", "advertising started!");
 }
 
+void GAP::init_advertising() {
+  /* Make sure we have proper BT identity address set (random preferred) */
+  if (ble_hs_util_ensure_addr(0)) {
+    throw std::runtime_error("device does not have any available bt address!");
+  }
+
+  /* Figure out BT address to use while advertising (no privacy for now) */
+  if (ble_hs_id_infer_auto(0, &own_addr_type)) {
+    throw std::runtime_error("failed to infer address type");
+  }
+
+  /* Printing ADDR */
+  if (ble_hs_id_copy_addr(own_addr_type, address_value, nullptr)) {
+    throw std::runtime_error("failed to copy device address");
+  }
+
+  char address_string[18] = {0};
+  format_addr(address_string, address_value);
+  ESP_LOGI("GATT-Server", "device address: %s", address_string);
+}
+
 /**
  * NimBLE applies an event-driven model to keep GAP service going
  * gap_event_handler is a callback function registered when calling
  * ble_gap_adv_start API and called when a GAP event arrives */
-int GAP::gap_event_handler(struct ble_gap_event *event, void *arg) {
+int GAP::gap_event_handler(ble_gap_event *event, void *arg) {
   switch (event->type) {
   case BLE_GAP_EVENT_CONNECT:
     /* Connection succeeded */
@@ -145,11 +134,11 @@ int GAP::gap_event_handler(struct ble_gap_event *event, void *arg) {
 
       print_conn_desc(&desc);
 
-      struct ble_gap_upd_params params = {.itvl_min = desc.conn_itvl,
-                                          .itvl_max = desc.conn_itvl,
-                                          .latency = 3,
-                                          .supervision_timeout =
-                                              desc.supervision_timeout};
+      ble_gap_upd_params params = {.itvl_min = desc.conn_itvl,
+                                   .itvl_max = desc.conn_itvl,
+                                   .latency = 3,
+                                   .supervision_timeout =
+                                       desc.supervision_timeout};
       if (ble_gap_update_params(event->connect.conn_handle, &params)) {
         throw std::runtime_error("failed to update connection parameters");
       }
@@ -205,7 +194,7 @@ int GAP::gap_event_handler(struct ble_gap_event *event, void *arg) {
              event->subscribe.cur_notify, event->subscribe.prev_indicate,
              event->subscribe.cur_indicate);
 
-    ble::gatt::service_subscribe_cb(event);
+    // TODO:  ble::gatt::service_subscribe_cb(event);
     return 0;
 
   case BLE_GAP_EVENT_MTU:
@@ -216,26 +205,33 @@ int GAP::gap_event_handler(struct ble_gap_event *event, void *arg) {
 
   return 0;
 }
+} // namespace ble
 
-void GAP::init_advertising() {
-  /* Make sure we have proper BT identity address set (random preferred) */
-  if (ble_hs_util_ensure_addr(0)) {
-    throw std::runtime_error("device does not have any available bt address!");
-  }
-
-  /* Figure out BT address to use while advertising (no privacy for now) */
-  if (ble_hs_id_infer_auto(0, &own_addr_type)) {
-    throw std::runtime_error("failed to infer address type");
-  }
-
-  /* Printing ADDR */
-  if (ble_hs_id_copy_addr(own_addr_type, address_value, nullptr)) {
-    throw std::runtime_error("failed to copy device address");
-  }
-
-  char address_string[18] = {0};
-  format_addr(address_string, address_value);
-  ESP_LOGI("GATT-Server", "device address: %s", address_string);
+void format_addr(char *address_string, uint8_t addr[]) {
+  sprintf(address_string, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1],
+          addr[2], addr[3], addr[4], addr[5]);
 }
 
-} // namespace ble
+void print_conn_desc(ble_gap_conn_desc *desc) {
+  char address_string[18] = {0};
+
+  /* Connection handle */
+  ESP_LOGI("GATT-Server", "connection handle: %d", desc->conn_handle);
+
+  format_addr(address_string, desc->our_id_addr.val);
+  ESP_LOGI("GATT-Server", "device id address: type=%d, value=%s",
+           desc->our_id_addr.type, address_string);
+
+  /* Peer ID address */
+  format_addr(address_string, desc->peer_id_addr.val);
+  ESP_LOGI("GATT-Server", "peer id address: type=%d, value=%s",
+           desc->peer_id_addr.type, address_string);
+
+  /* Connection info */
+  ESP_LOGI("GATT-Server",
+           "conn_itvl=%d, conn_latency=%d, supervision_timeout=%d, "
+           "encrypted=%d, authenticated=%d, bonded=%d\n",
+           desc->conn_itvl, desc->conn_latency, desc->supervision_timeout,
+           desc->sec_state.encrypted, desc->sec_state.authenticated,
+           desc->sec_state.bonded);
+}

@@ -7,6 +7,8 @@
  */
 
 #pragma once
+#include <cstdint>
+#include <string>
 
 namespace ble {
 class GAP {

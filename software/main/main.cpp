@@ -16,7 +16,7 @@ int32_t speed_ref = 0;
 ble::BLE *ble_ptr;
 
 namespace {
-
+/*
 ble::GATT::Service<ble_uuid16_t, 2> heart_rate{
     .uuid =
         {
@@ -70,6 +70,7 @@ ble::GATT::Service<ble_uuid16_t, 2> led = {
             .is_connection_handle_initialized = false,
         },
 };
+*/
 
 int32_t get_motor_speed() { return 0; }
 
@@ -85,7 +86,7 @@ void heart_rate_task(void *param) {
   while (true) {
     update_heart_rate();
     ESP_LOGI("GATT-Server", "heart rate updated to %d", get_heart_rate());
-    ble_ptr->send_indication(heart_rate);
+    // ble_ptr->send_indication(heart_rate);
     vTaskDelay(100);
   }
 

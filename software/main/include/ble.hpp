@@ -18,16 +18,19 @@ namespace ble {
 class BLE {
   Nimble nimble;
   GAP gap;
-  GATT gatt;
+  // TODO  GATT gatt;
 
 public:
   BLE(std::string const &app_name);
 
-  void gatt_service_register_callback(ble_hatt_register_ctxt ctxt, void *arg);
+  // void gatt_service_register_callback(ble_hatt_register_ctxt ctxt, void
+  // *arg);
+
+  /** @brief nimble backround housekeeping task running in backround */
   void nimble_host_task();
 
-  template <typename uuid_type, uint8_t N>
-  void send_indication(GATT::Service<uuid_type, N> service);
+  // template <typename uuid_type, uint8_t N> void
+  // send_indication(GATT::Service<uuid_type, N> service);
 
 private:
   void init_nimble_host();
