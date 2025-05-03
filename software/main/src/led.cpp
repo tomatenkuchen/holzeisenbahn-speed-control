@@ -1,27 +1,25 @@
-#include "led.hpp"
-
-extern "C" {
+#include "common.hpp"
 #include "driver/gpio.h"
-}
+#include "esp_log.h"
+#include "led.hpp"
+#include <cstdint>
+
+namespace led {
 
 namespace {
-bool led_state;
-gpio_num_t constexpr led_blink_gpio = static_cast<gpio_num_t>(8);
+uint8_t led_state;
+constexpr gpio_num_t led_gpio = static_cast<gpio_num_t>(15);
 } // namespace
 
-bool get_led_state() { return led_state; }
+uint8_t get_state() { return led_state; }
 
-void led_on() {
-  led_state = true;
-  gpio_set_level(led_blink_gpio, true);
-}
+void on() { gpio_set_level(led_gpio, true); }
 
-void led_off() {
-  led_state = false;
-  gpio_set_level(led_blink_gpio, false);
-}
+void off() { gpio_set_level(led_gpio, false); }
 
-void led_init() {
-  gpio_reset_pin(led_blink_gpio);
-  gpio_set_direction(led_blink_gpio, GPIO_MODE_OUTPUT);
+void init() {
+  ESP_LOGI(TAG, "example configured to blink gpio led!");
+  gpio_reset_pin(led_gpio);
+  gpio_set_direction(led_gpio, GPIO_MODE_OUTPUT);
 }
+} // namespace led

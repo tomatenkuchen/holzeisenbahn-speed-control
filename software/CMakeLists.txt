@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 4.0)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-
-idf_build_set_property(MINIMAL_BUILD OFF)
-project(eisenbahn-speed-control)
+# "Trim" the build. Include the minimal set of components, main, and anything it depends on.
+idf_build_set_property(MINIMAL_BUILD ON)
+project(nimble_gatt_server)
