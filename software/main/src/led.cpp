@@ -13,9 +13,9 @@ constexpr gpio_num_t led_gpio = static_cast<gpio_num_t>(15);
 
 uint8_t get_state() { return led_state; }
 
-void on() { gpio_set_level(led_gpio, true); }
+void on() { gpio_set_level(led_gpio, false); }
 
-void off() { gpio_set_level(led_gpio, false); }
+void off() { gpio_set_level(led_gpio, true); }
 
 void init() {
   ESP_LOGI(TAG, "example configured to blink gpio led!");

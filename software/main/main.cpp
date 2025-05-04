@@ -34,7 +34,7 @@ extern "C" void app_main() {
 
     led::init();
 
-    Ble ble("esp-gatt-c++", Ble::Antenna::external);
+    Ble ble("henrilok", Ble::Antenna::external);
     ble_ptr = &ble;
 
     xTaskCreate(ble_nimble_task, "NimBLE Host", 4 * 1024, NULL, 5, NULL);

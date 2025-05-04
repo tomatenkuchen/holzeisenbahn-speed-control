@@ -3,6 +3,7 @@
 #include "heart_rate.hpp"
 #include "host/ble_gatt.h"
 #include "led.hpp"
+#include "nimble/ble.h"
 #include <array>
 #include <stdexcept>
 
@@ -106,52 +107,40 @@ error:
 
 int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                    struct ble_gatt_access_ctxt *ctxt, void *arg) {
-  /* Local variables */
-  int rc;
-
-  /* Handle access events */
-  /* Note: LED characteristic is write only */
-  switch (ctxt->op) {
-
-  /* Write characteristic event */
-  case BLE_GATT_ACCESS_OP_WRITE_CHR:
-    /* Verify connection handle */
-    if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-      ESP_LOGI(TAG, "characteristic write; conn_handle=%d attr_handle=%d",
-               conn_handle, attr_handle);
-    } else {
-      ESP_LOGI(TAG, "characteristic write by nimble stack; attr_handle=%d",
-               attr_handle);
-    }
-
-    /* Verify attribute handle */
-    if (attr_handle == led_chr_val_handle) {
-      /* Verify access buffer length */
-      if (ctxt->om->om_len == 1) {
-        /* Turn the LED on or off according to the operation bit */
-        if (ctxt->om->om_data[0]) {
-          led::on();
-          ESP_LOGI(TAG, "led turned on!");
-        } else {
-          led::off();
-          ESP_LOGI(TAG, "led turned off!");
-        }
-      } else {
-        goto error;
-      }
-      return rc;
-    }
-    goto error;
-
-  /* Unknown event */
-  default:
-    goto error;
+  if (ctxt->op != BLE_GATT_ACCESS_OP_WRITE_CHR) {
+    return BLE_ERR_UNSPECIFIED;
   }
 
-error:
-  ESP_LOGE(TAG, "unexpected access operation to led characteristic, opcode: %d",
-           ctxt->op);
-  return BLE_ATT_ERR_UNLIKELY;
+  if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+    ESP_LOGI(TAG, "characteristic write; conn_handle=%d attr_handle=%d",
+             conn_handle, attr_handle);
+  } else {
+    ESP_LOGI(TAG, "characteristic write by nimble stack; attr_handle=%d",
+             attr_handle);
+  }
+
+  /* Verify attribute handle */
+  if (attr_handle != led_chr_val_handle) {
+    throw std::runtime_error(
+        "unexpected access operation on led characteristic");
+  }
+
+  /* Verify access buffer length */
+  if (ctxt->om->om_len != 1) {
+    throw std::runtime_error(
+        "unexpected access operation on led characteristic");
+  }
+
+  /* Turn the LED on or off according to the operation bit */
+  if (ctxt->om->om_data[0]) {
+    led::on();
+    ESP_LOGI(TAG, "led turned on!");
+  } else {
+    led::off();
+    ESP_LOGI(TAG, "led turned off!");
+  }
+
+  return 0;
 }
 
 } // namespace

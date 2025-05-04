@@ -10,6 +10,7 @@
 #include "esp_log_level.h"
 #include "hal/gpio_types.h"
 #include <string>
+#include <variant>
 
 class Ble {
 public:
