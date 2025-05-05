@@ -1,6 +1,5 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "esp_log_level.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "gatt_svc.hpp"
@@ -51,8 +50,12 @@ ble_gatt_chr_def const heart_rate_characteristic = {
     .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_INDICATE,
     .val_handle = &heart_rate_chr_val_handle,
 };
+
 std::array<ble_gatt_chr_def, 2> heart_rate_characteristics = {
-    heart_rate_characteristic, {0}};
+    heart_rate_characteristic,
+    {0},
+};
+
 ble_gatt_svc_def heart_rate_service = {
     .type = BLE_GATT_SVC_TYPE_PRIMARY,
     .uuid = &heart_rate_svc_uuid.u,
@@ -65,7 +68,12 @@ ble_gatt_chr_def const led_characteristic = {
     .flags = BLE_GATT_CHR_F_WRITE,
     .val_handle = &led_chr_val_handle,
 };
-std::array<ble_gatt_chr_def, 2> led_characteristics = {led_characteristic, {0}};
+
+std::array<ble_gatt_chr_def, 2> led_characteristics = {
+    led_characteristic,
+    {0},
+};
+
 ble_gatt_svc_def const led_service = {
     .type = BLE_GATT_SVC_TYPE_PRIMARY,
     .uuid = &auto_io_svc_uuid.u,
@@ -73,16 +81,13 @@ ble_gatt_svc_def const led_service = {
 };
 
 std::array<ble_gatt_svc_def, 3> const ble_services = {
-    heart_rate_service, led_service, {0}};
+    heart_rate_service,
+    led_service,
+    {0},
+};
 
-/* Private functions */
 int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg) {
-  /* Local variables */
-  int rc;
-
-  /* Handle access events */
-  /* Note: Heart rate characteristic is read only */
   switch (ctxt->op) {
 
   /* Read characteristic event */
@@ -102,8 +107,8 @@ int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
     if (attr_handle == heart_rate_chr_val_handle) {
       /* Update access buffer value */
       heart_rate_chr_val[1] = get_heart_rate();
-      rc = os_mbuf_append(ctxt->om, &heart_rate_chr_val,
-                          sizeof(heart_rate_chr_val));
+      int rc = os_mbuf_append(ctxt->om, &heart_rate_chr_val,
+                              sizeof(heart_rate_chr_val));
       return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
     }
     goto error;

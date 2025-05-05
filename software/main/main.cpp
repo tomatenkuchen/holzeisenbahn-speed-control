@@ -24,7 +24,7 @@ namespace {
 
 constexpr std::string TAG = "main";
 
-Ble *ble_ptr;
+ble::Ble *ble_ptr;
 
 void heart_rate_task(void *param) {
   while (true) {
@@ -46,7 +46,7 @@ extern "C" void app_main() {
 
     led::init();
 
-    Ble ble("henrilok", Ble::Antenna::external);
+    ble::Ble ble("henri-lok", ble::Ble::Antenna::external);
     ble_ptr = &ble;
 
     xTaskCreate(ble_nimble_task, "NimBLE Host", 4 * 1024, NULL, 5, NULL);

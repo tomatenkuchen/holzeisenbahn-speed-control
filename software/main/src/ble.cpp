@@ -19,29 +19,25 @@
 
 extern "C" void ble_store_config_init();
 
+namespace ble {
+
 namespace {
 
 constexpr std::string TAG = "ble";
 
-void on_stack_reset(int reason);
-void on_stack_sync();
 void on_stack_reset(int reason) {
-  /* On reset, print reset reason to console */
+  // On reset, print reset reason to console
   ESP_LOGI(TAG.c_str(), "nimble stack reset, reset reason: %d", reason);
 }
 
-void on_stack_sync() {
-  /* On stack sync, do advertising initialization */
-  adv_init();
-}
+void on_stack_sync() { gap.advertizing_start(); }
 
 } // namespace
 
-Ble::Ble(std::string device_name, Antenna antenna) {
+Ble::Ble(std::string device_name, Antenna antenna) : gap(device_name) {
   choose_antenna(antenna);
   init_nvs();
   init_nimble_port();
-  gap_init(device_name);
   gatt_svc_init();
   nimble_host_config_init();
 }
@@ -51,8 +47,6 @@ void Ble::nimble_host_task() {
   vTaskDelete(NULL);
 }
 
-/// @brief control advertizing
-/// @param enable true -> start, false -> stop
 void Ble::advertize(bool enable) {
   if (enable) {
     ESP_LOGI(TAG.c_str(), "start advertizing");
@@ -62,7 +56,6 @@ void Ble::advertize(bool enable) {
 }
 
 void Ble::init_nvs() {
-
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
       ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -101,3 +94,4 @@ void Ble::choose_antenna(Antenna antenna) {
 
   gpio_set_level(antenna_switch_gpio, antenna == Antenna::external);
 }
+} // namespace ble

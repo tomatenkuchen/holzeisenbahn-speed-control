@@ -17,43 +17,44 @@
 #include <string>
 #include <string_view>
 
-namespace {
-constexpr std::string TAG = "gap";
-inline void format_addr(char *addr_str, uint8_t addr[]);
-void print_conn_desc(struct ble_gap_conn_desc *desc);
-void start_advertising(void);
-int gap_event_handler(struct ble_gap_event *event, void *arg);
-uint8_t own_addr_type;
-uint8_t addr_val[6] = {0};
-std::string_view esp_uri = "\x17//espressif.com";
+namespace gap {
 
-inline void format_addr(char *addr_str, uint8_t addr[]) {
-  sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2],
-          addr[3], addr[4], addr[5]);
+Gap::Gap(std::string device_name) {
+  ble_svc_gap_init();
+  if (ble_svc_gap_device_name_set(device_name.c_str()) != 0) {
+    throw std::runtime_error("failed to set device name");
+  }
 }
 
-void print_conn_desc(struct ble_gap_conn_desc *desc) {
+void Gap::advertizing_start() {
+
+  // Make sure we have proper BT identity address set (random preferred) */
+  int rc = ble_hs_util_ensure_addr(0);
+  if (rc != 0) {
+    ESP_LOGE(TAG.c_str(), "device does not have any available bt address!");
+    return;
+  }
+
+  // Figure out BT address to use while advertising (no privacy for now) */
+  rc = ble_hs_id_infer_auto(0, &own_addr_type);
+  if (rc != 0) {
+    ESP_LOGE(TAG.c_str(), "failed to infer address type, error code: %d", rc);
+    return;
+  }
+
   char addr_str[18] = {0};
+  rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
+  if (rc != 0) {
+    ESP_LOGE(TAG.c_str(), "failed to copy device address, error code: %d", rc);
+    return;
+  }
+  format_addr(addr_str, addr_val);
+  ESP_LOGI(TAG.c_str(), "device address: %s", addr_str);
 
-  ESP_LOGI(TAG.c_str(), "connection handle: %d", desc->conn_handle);
-
-  format_addr(addr_str, desc->our_id_addr.val);
-  ESP_LOGI(TAG.c_str(), "device id address: type=%d, value=%s",
-           desc->our_id_addr.type, addr_str);
-
-  format_addr(addr_str, desc->peer_id_addr.val);
-  ESP_LOGI(TAG.c_str(), "peer id address: type=%d, value=%s",
-           desc->peer_id_addr.type, addr_str);
-
-  ESP_LOGI(TAG.c_str(),
-           "conn_itvl=%d, conn_latency=%d, supervision_timeout=%d, "
-           "encrypted=%d, authenticated=%d, bonded=%d\n",
-           desc->conn_itvl, desc->conn_latency, desc->supervision_timeout,
-           desc->sec_state.encrypted, desc->sec_state.authenticated,
-           desc->sec_state.bonded);
+  start_advertising();
 }
 
-void start_advertising() {
+void Gap::start_advertising() {
   int rc = 0;
   const char *name;
   struct ble_hs_adv_fields adv_fields = {0};
@@ -74,11 +75,11 @@ void start_advertising() {
   adv_fields.tx_pwr_lvl_is_present = 1;
 
   /* Set device appearance */
-  adv_fields.appearance = BLE_GAP_APPEARANCE_GENERIC_TAG;
+  adv_fields.appearance = 0x0200;
   adv_fields.appearance_is_present = 1;
 
   /* Set device LE role */
-  adv_fields.le_role = BLE_GAP_LE_ROLE_PERIPHERAL;
+  adv_fields.le_role = 0;
   adv_fields.le_role_is_present = 1;
 
   /* Set advertiement fields */
@@ -123,12 +124,7 @@ void start_advertising() {
   ESP_LOGI(TAG.c_str(), "advertising started!");
 }
 
-/*
- * NimBLE applies an event-driven model to keep GAP service going
- * gap_event_handler is a callback function registered when calling
- * ble_gap_adv_start API and called when a GAP event arrives
- */
-int gap_event_handler(struct ble_gap_event *event, void *arg) {
+int Gap::gap_event_handler(struct ble_gap_event *event, void *arg) {
   /* Local variables */
   int rc = 0;
   struct ble_gap_conn_desc desc;
@@ -248,42 +244,30 @@ int gap_event_handler(struct ble_gap_event *event, void *arg) {
   return rc;
 }
 
-} // namespace
+void Gap::format_addr(char *addr_str, uint8_t addr[]) {
+  sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2],
+          addr[3], addr[4], addr[5]);
+}
 
-void adv_init() {
-  /* Make sure we have proper BT identity address set (random preferred) */
-  int rc = ble_hs_util_ensure_addr(0);
-  if (rc != 0) {
-    ESP_LOGE(TAG.c_str(), "device does not have any available bt address!");
-    return;
-  }
-
-  /* Figure out BT address to use while advertising (no privacy for now) */
-  rc = ble_hs_id_infer_auto(0, &own_addr_type);
-  if (rc != 0) {
-    ESP_LOGE(TAG.c_str(), "failed to infer address type, error code: %d", rc);
-    return;
-  }
-
-  // Printing ADDR */
+void Gap::print_conn_desc(ble_gap_conn_desc *desc) {
   char addr_str[18] = {0};
-  rc = ble_hs_id_copy_addr(own_addr_type, addr_val, NULL);
-  if (rc != 0) {
-    ESP_LOGE(TAG.c_str(), "failed to copy device address, error code: %d", rc);
-    return;
-  }
-  format_addr(addr_str, addr_val);
-  ESP_LOGI(TAG.c_str(), "device address: %s", addr_str);
 
-  // Start advertising. */
-  start_advertising();
+  ESP_LOGI(TAG.c_str(), "connection handle: %d", desc->conn_handle);
+
+  format_addr(addr_str, desc->our_id_addr.val);
+  ESP_LOGI(TAG.c_str(), "device id address: type=%d, value=%s",
+           desc->our_id_addr.type, addr_str);
+
+  format_addr(addr_str, desc->peer_id_addr.val);
+  ESP_LOGI(TAG.c_str(), "peer id address: type=%d, value=%s",
+           desc->peer_id_addr.type, addr_str);
+
+  ESP_LOGI(TAG.c_str(),
+           "conn_itvl=%d, conn_latency=%d, supervision_timeout=%d, "
+           "encrypted=%d, authenticated=%d, bonded=%d\n",
+           desc->conn_itvl, desc->conn_latency, desc->supervision_timeout,
+           desc->sec_state.encrypted, desc->sec_state.authenticated,
+           desc->sec_state.bonded);
 }
 
-void gap_init(std::string device_name) {
-
-  ble_svc_gap_init();
-
-  if (ble_svc_gap_device_name_set(device_name.c_str()) != 0) {
-    throw std::runtime_error("failed to set device name");
-  }
-}
+} // namespace gap
