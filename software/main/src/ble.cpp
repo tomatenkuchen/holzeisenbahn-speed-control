@@ -1,12 +1,19 @@
 #include "ble.hpp"
-#include "common.hpp"
 #include "driver/gpio.h"
-#include "esp_log_level.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "gap.hpp"
 #include "gatt_svc.hpp"
-#include "hal/gpio_types.h"
-#include "heart_rate.hpp"
+#include "host/ble_hs.h"
+#include "host/ble_uuid.h"
+#include "host/util/util.h"
 #include "led.hpp"
+#include "nimble/ble.h"
+#include "nimble/nimble_port.h"
+#include "nimble/nimble_port_freertos.h"
+#include "nvs_flash.h"
+#include "sdkconfig.h"
 #include <stdexcept>
 #include <string>
 
@@ -14,11 +21,13 @@ extern "C" void ble_store_config_init();
 
 namespace {
 
+constexpr std::string TAG = "ble";
+
 void on_stack_reset(int reason);
 void on_stack_sync();
 void on_stack_reset(int reason) {
   /* On reset, print reset reason to console */
-  ESP_LOGI(TAG, "nimble stack reset, reset reason: %d", reason);
+  ESP_LOGI(TAG.c_str(), "nimble stack reset, reset reason: %d", reason);
 }
 
 void on_stack_sync() {
@@ -46,9 +55,9 @@ void Ble::nimble_host_task() {
 /// @param enable true -> start, false -> stop
 void Ble::advertize(bool enable) {
   if (enable) {
-    ESP_LOGI("ble", "start advertizing");
+    ESP_LOGI(TAG.c_str(), "start advertizing");
   } else {
-    ESP_LOGI("ble", "stop advertizing");
+    ESP_LOGI(TAG.c_str(), "stop advertizing");
   }
 }
 

@@ -1,13 +1,27 @@
-#include "common.hpp"
+#include "driver/gpio.h"
+#include "esp_log.h"
+#include "esp_log_level.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "gatt_svc.hpp"
 #include "heart_rate.hpp"
 #include "host/ble_gatt.h"
+#include "host/ble_hs.h"
+#include "host/ble_uuid.h"
+#include "host/util/util.h"
 #include "led.hpp"
 #include "nimble/ble.h"
+#include "nimble/nimble_port.h"
+#include "nimble/nimble_port_freertos.h"
+#include "nvs_flash.h"
+#include "sdkconfig.h"
 #include <array>
 #include <stdexcept>
+#include <string>
 
 namespace {
+
+constexpr std::string TAG = "gatt";
 
 int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg);
@@ -75,10 +89,12 @@ int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
   case BLE_GATT_ACCESS_OP_READ_CHR:
     /* Verify connection handle */
     if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-      ESP_LOGI(TAG, "characteristic read; conn_handle=%d attr_handle=%d",
+      ESP_LOGI(TAG.c_str(),
+               "characteristic read; conn_handle=%d attr_handle=%d",
                conn_handle, attr_handle);
     } else {
-      ESP_LOGI(TAG, "characteristic read by nimble stack; attr_handle=%d",
+      ESP_LOGI(TAG.c_str(),
+               "characteristic read by nimble stack; attr_handle=%d",
                attr_handle);
     }
 
@@ -98,10 +114,10 @@ int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
   }
 
 error:
-  ESP_LOGE(
-      TAG,
-      "unexpected access operation to heart rate characteristic, opcode: %d",
-      ctxt->op);
+  ESP_LOGE(TAG.c_str(),
+           "unexpected access operation to heart rate "
+           "characteristic, opcode: %d",
+           ctxt->op);
   return BLE_ATT_ERR_UNLIKELY;
 }
 
@@ -112,10 +128,11 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
   }
 
   if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-    ESP_LOGI(TAG, "characteristic write; conn_handle=%d attr_handle=%d",
+    ESP_LOGI(TAG.c_str(), "characteristic write; conn_handle=%d attr_handle=%d",
              conn_handle, attr_handle);
   } else {
-    ESP_LOGI(TAG, "characteristic write by nimble stack; attr_handle=%d",
+    ESP_LOGI(TAG.c_str(),
+             "characteristic write by nimble stack; attr_handle=%d",
              attr_handle);
   }
 
@@ -134,10 +151,10 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
   /* Turn the LED on or off according to the operation bit */
   if (ctxt->om->om_data[0]) {
     led::on();
-    ESP_LOGI(TAG, "led turned on!");
+    ESP_LOGI(TAG.c_str(), "led turned on!");
   } else {
     led::off();
-    ESP_LOGI(TAG, "led turned off!");
+    ESP_LOGI(TAG.c_str(), "led turned off!");
   }
 
   return 0;
@@ -148,7 +165,7 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
 void send_heart_rate_indication() {
   if (heart_rate_ind_status && heart_rate_chr_conn_handle_inited) {
     ble_gatts_indicate(heart_rate_chr_conn_handle, heart_rate_chr_val_handle);
-    ESP_LOGI(TAG, "heart rate indication sent!");
+    ESP_LOGI(TAG.c_str(), "heart rate indication sent!");
   }
 }
 
@@ -161,13 +178,13 @@ void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
 
   /* Service register event */
   case BLE_GATT_REGISTER_OP_SVC:
-    ESP_LOGD(TAG, "registered service %s with handle=%d",
+    ESP_LOGD(TAG.c_str(), "registered service %s with handle=%d",
              ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
     break;
 
   /* Characteristic register event */
   case BLE_GATT_REGISTER_OP_CHR:
-    ESP_LOGD(TAG,
+    ESP_LOGD(TAG.c_str(),
              "registering characteristic %s with "
              "def_handle=%d val_handle=%d",
              ble_uuid_to_str(ctxt->chr.chr_def->uuid, buf),
@@ -176,7 +193,7 @@ void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
 
   /* Descriptor register event */
   case BLE_GATT_REGISTER_OP_DSC:
-    ESP_LOGD(TAG, "registering descriptor %s with handle=%d",
+    ESP_LOGD(TAG.c_str(), "registering descriptor %s with handle=%d",
              ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf), ctxt->dsc.handle);
     break;
 
@@ -189,10 +206,10 @@ void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
 void gatt_svr_subscribe_cb(struct ble_gap_event *event) {
   /* Check connection handle */
   if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-    ESP_LOGI(TAG, "subscribe event; conn_handle=%d attr_handle=%d",
+    ESP_LOGI(TAG.c_str(), "subscribe event; conn_handle=%d attr_handle=%d",
              event->subscribe.conn_handle, event->subscribe.attr_handle);
   } else {
-    ESP_LOGI(TAG, "subscribe by nimble stack; attr_handle=%d",
+    ESP_LOGI(TAG.c_str(), "subscribe by nimble stack; attr_handle=%d",
              event->subscribe.attr_handle);
   }
 

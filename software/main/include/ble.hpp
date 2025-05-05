@@ -6,8 +6,6 @@
  * @copyright GPL v2.0
  */
 
-#include "common.hpp"
-#include "esp_log_level.h"
 #include "hal/gpio_types.h"
 #include <string>
 #include <variant>
