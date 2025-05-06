@@ -17,6 +17,7 @@
 #include "nimble/nimble_port_freertos.h"
 #include "nvs_flash.h"
 #include "sdkconfig.h"
+#include "speed_ctrl.hpp"
 #include <stdexcept>
 #include <string>
 
@@ -25,12 +26,11 @@ namespace {
 constexpr std::string TAG = "main";
 
 ble::Ble *ble_ptr;
+drive::SpeedControl *speed_control_ptr;
 
-void heart_rate_task(void *param) {
+void speed_control_task(void *param) {
   while (true) {
-    update_heart_rate();
-    send_heart_rate_indication();
-    ESP_LOGI(TAG.c_str(), "heart rate updated to %d", get_heart_rate());
+
     vTaskDelay(100);
   }
 
@@ -48,6 +48,9 @@ extern "C" void app_main() {
 
     ble::Ble ble("henri-lok", ble::Ble::Antenna::external);
     ble_ptr = &ble;
+
+    SpeedControl speed_control;
+    speed_control_ptr = &speed_control;
 
     xTaskCreate(ble_nimble_task, "NimBLE Host", 4 * 1024, NULL, 5, NULL);
     xTaskCreate(heart_rate_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
