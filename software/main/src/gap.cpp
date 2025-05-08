@@ -72,7 +72,7 @@ Gap::Gap(std::string _device_name)
   // }
 }
 
-void Gap::advertizing_start() {
+void Gap::advertizing_start(ble_gap_event_fn gap_event_callback) {
   // Make sure we have proper BT identity address set (random preferred)
   if (ble_hs_util_ensure_addr(0) != 0) {
     throw std::runtime_error("device does not have any available bt address!");
@@ -91,10 +91,10 @@ void Gap::advertizing_start() {
   format_addr(addr_str, addr_val);
   ESP_LOGI(TAG.c_str(), "device address: %s", addr_str);
 
-  start_advertising();
+  start_advertising(gap_event_callback);
 }
 
-void Gap::start_advertising() {
+void Gap::start_advertising(ble_gap_event_fn gap_event_callback) {
   // auto const name = ble_svc_gap_device_name();
 
   if (ble_gap_adv_set_fields(&adv_fields) != 0) {
@@ -214,7 +214,7 @@ void Gap::mtu_event(ble_gap_event *event) {
            event->mtu.conn_handle, event->mtu.channel_id, event->mtu.value);
 }
 
-int Gap::gap_event_handler(ble_gap_event *event) {
+int Gap::event_handler(ble_gap_event *event) {
 
   // Handle different GAP event
   switch (event->type) {

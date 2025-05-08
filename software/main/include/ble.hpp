@@ -66,6 +66,7 @@ template <typename Value, uint8_t N> struct Service {
 /// bluetooth low energy abstraction class
 class Ble {
 public:
+  /// @brief antenna output
   enum class Antenna {
     internal,
     external,
