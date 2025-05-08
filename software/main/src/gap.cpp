@@ -64,10 +64,12 @@ Gap::Gap(std::string _device_name)
           .itvl_min = BLE_GAP_ADV_ITVL_MS(500),
           .itvl_max = BLE_GAP_ADV_ITVL_MS(510),
       } {
+
   ble_svc_gap_init();
-  if (ble_svc_gap_device_name_set(device_name.c_str()) != 0) {
-    throw std::runtime_error("failed to set device name");
-  }
+
+  // if (ble_svc_gap_device_name_set(device_name.c_str()) != 0) {
+  // throw std::runtime_error("failed to set device name");
+  // }
 }
 
 void Gap::advertizing_start() {
@@ -93,7 +95,7 @@ void Gap::advertizing_start() {
 }
 
 void Gap::start_advertising() {
-  auto const name = ble_svc_gap_device_name();
+  // auto const name = ble_svc_gap_device_name();
 
   if (ble_gap_adv_set_fields(&adv_fields) != 0) {
     throw std::runtime_error("failed to set advertising data");
@@ -112,7 +114,7 @@ void Gap::start_advertising() {
   ESP_LOGI(TAG.c_str(), "advertising started!");
 }
 
-int Gap::connect_event(ble_gap_event *event, void *arg) {
+int Gap::connect_event(ble_gap_event *event) {
 
   // A new connection was established or a connection attempt failed
   ESP_LOGI(TAG.c_str(), "connection %s; status=%d",
@@ -120,33 +122,33 @@ int Gap::connect_event(ble_gap_event *event, void *arg) {
            event->connect.status);
 
   // Connection succeeded
-  if (event->connect.status == 0) {
-    // Check connection handle
-    if (ble_gap_conn_find(event->connect.conn_handle, &desc) != 0) {
-      throw std::runtime_error("failed to find connection by handle");
-    }
-
-    // Print connection descriptor
-    print_conn_desc(&desc);
-
-    // Try to update connection parameters
-    struct ble_gap_upd_params params = {.itvl_min = desc.conn_itvl,
-                                        .itvl_max = desc.conn_itvl,
-                                        .latency = 3,
-                                        .supervision_timeout =
-                                            desc.supervision_timeout};
-    rc = ble_gap_update_params(event->connect.conn_handle, &params);
-    if (rc != 0) {
-      ESP_LOGE(TAG.c_str(),
-               "failed to update connection parameters, error code: %d", rc);
-      return rc;
-    }
-  }
-  // Connection failed, restart advertising
-  else {
+  if (event->connect.status != 0) {
     start_advertising();
+    return 0;
   }
-  return rc;
+
+  // Check connection handle
+  ble_gap_conn_desc desc;
+  if (ble_gap_conn_find(event->connect.conn_handle, &desc) != 0) {
+    throw std::runtime_error("failed to find connection by handle");
+  }
+
+  // Print connection descriptor
+  print_conn_desc(&desc);
+
+  // Try to update connection parameters
+  ble_gap_upd_params params = {
+      .itvl_min = desc.conn_itvl,
+      .itvl_max = desc.conn_itvl,
+      .latency = 3,
+      .supervision_timeout = desc.supervision_timeout,
+  };
+
+  if (ble_gap_update_params(event->connect.conn_handle, &params) != 0) {
+    throw std::runtime_error("failed to update connection parameters");
+  }
+
+  return 0;
 }
 
 void Gap::disconnect_event(ble_gap_event *event) {
@@ -212,33 +214,32 @@ void Gap::mtu_event(ble_gap_event *event) {
            event->mtu.conn_handle, event->mtu.channel_id, event->mtu.value);
 }
 
-int Gap::gap_event_handler(ble_gap_event *event, void *arg) {
+int Gap::gap_event_handler(ble_gap_event *event) {
 
   // Handle different GAP event
   switch (event->type) {
 
   // Connect event
   case BLE_GAP_EVENT_CONNECT:
-    connect_event(event);
-    return;
+    return connect_event(event);
   case BLE_GAP_EVENT_DISCONNECT:
     disconnect_event(event);
-    return;
+    return 0;
   case BLE_GAP_EVENT_CONN_UPDATE:
     update_event(event);
-    return;
+    return 0;
   case BLE_GAP_EVENT_ADV_COMPLETE:
     advertizing_complete_event(event);
-    return;
+    return 0;
   case BLE_GAP_EVENT_NOTIFY_TX:
     notify_event(event);
-    return;
+    return 0;
   case BLE_GAP_EVENT_SUBSCRIBE:
     subscribe_event(event);
-    return;
+    return 0;
   case BLE_GAP_EVENT_MTU:
     mtu_event(event);
-    return;
+    return 0;
   }
 
   return 0;

@@ -83,6 +83,9 @@ public:
   /// @param enable true -> start, false -> stop
   void advertize(bool enable);
 
+  /// @brief handles gap events
+  int event_handler(ble_gap_event *event);
+
 private:
   /// switch pin to switch antenna switch on or off
   constexpr static inline gpio_num_t rf_switch_gpio =

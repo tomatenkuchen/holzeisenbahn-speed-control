@@ -55,6 +55,10 @@ void Ble::advertize(bool enable) {
   }
 }
 
+int Ble::event_handler(ble_gap_event *event) {
+  return gap.event_handler(event);
+}
+
 void Ble::init_nvs() {
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
