@@ -15,14 +15,22 @@
 
 namespace ble {
 
+/// uuid for predfined characteristic
 struct UUID16 {
   uint16_t uuid;
 };
+
+/// uuid for custom characteristics
 struct UUID128 {
   std::array<uint8_t, 16> uuid;
 };
+
+/// since we need arrays of characteristics and services, we want a variant to
+/// accomordate different types of charachteristics, custom and predefined
 using UUID = std::variant<UUID16, UUID128>;
 
+/// flags defining the type of communication that is desired with the
+/// characteristic
 template <typename Value> struct Characteristic {
   enum class Flag {
     broadcast,
@@ -41,11 +49,15 @@ template <typename Value> struct Characteristic {
     write_authenticated,
     write_authorized,
   };
+  /// characteristic uuid
   UUID uuid;
+  /// actual value
   Value value;
+  /// characteristic com priviledges
   Flag flags;
 };
 
+/// service definition
 template <typename Value, uint8_t N> struct Service {
   UUID uuid;
   std::array<Characteristic<Value>, N> characteristics;
@@ -72,11 +84,14 @@ public:
   void advertize(bool enable);
 
 private:
+  /// switch pin to switch antenna switch on or off
   constexpr static inline gpio_num_t rf_switch_gpio =
       static_cast<gpio_num_t>(3);
+  /// switch to select antenna
   constexpr static inline gpio_num_t antenna_switch_gpio =
       static_cast<gpio_num_t>(14);
 
+  /// generic attributes service
   gap::Gap gap;
 
   void init_nvs();

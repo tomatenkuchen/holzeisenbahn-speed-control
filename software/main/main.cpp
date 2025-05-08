@@ -26,9 +26,9 @@ namespace {
 constexpr std::string TAG = "main";
 
 ble::Ble *ble_ptr;
-drive::SpeedControl *speed_control_ptr;
 
 void speed_control_task(void *param) {
+  SpeedControl speed_control;
   while (true) {
 
     vTaskDelay(100);
@@ -37,7 +37,11 @@ void speed_control_task(void *param) {
   vTaskDelete(NULL);
 }
 
-void ble_nimble_task(void *param) { ble_ptr->nimble_host_task(); }
+void ble_nimble_task(void *param) {
+  ble::Ble ble("henri-lok", ble::Ble::Antenna::external);
+  ble.nimble_host_task();
+  vTaskDelete(NULL);
+}
 
 } // namespace
 
@@ -45,12 +49,6 @@ extern "C" void app_main() {
   try {
 
     led::init();
-
-    ble::Ble ble("henri-lok", ble::Ble::Antenna::external);
-    ble_ptr = &ble;
-
-    SpeedControl speed_control;
-    speed_control_ptr = &speed_control;
 
     xTaskCreate(ble_nimble_task, "NimBLE Host", 4 * 1024, NULL, 5, NULL);
     xTaskCreate(heart_rate_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
