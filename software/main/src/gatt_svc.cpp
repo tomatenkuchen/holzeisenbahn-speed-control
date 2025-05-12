@@ -88,41 +88,28 @@ std::array<ble_gatt_svc_def, 3> const ble_services = {
 
 int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                           struct ble_gatt_access_ctxt *ctxt, void *arg) {
-  switch (ctxt->op) {
-
-  /* Read characteristic event */
-  case BLE_GATT_ACCESS_OP_READ_CHR:
-    /* Verify connection handle */
-    if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-      ESP_LOGI(TAG.c_str(),
-               "characteristic read; conn_handle=%d attr_handle=%d",
-               conn_handle, attr_handle);
-    } else {
-      ESP_LOGI(TAG.c_str(),
-               "characteristic read by nimble stack; attr_handle=%d",
-               attr_handle);
-    }
-
-    /* Verify attribute handle */
-    if (attr_handle == heart_rate_chr_val_handle) {
-      /* Update access buffer value */
-      heart_rate_chr_val[1] = get_heart_rate();
-      int rc = os_mbuf_append(ctxt->om, &heart_rate_chr_val,
-                              sizeof(heart_rate_chr_val));
-      return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
-    }
-    goto error;
-
-  /* Unknown event */
-  default:
-    goto error;
+  if (ctxt->op != BLE_GATT_ACCESS_OP_READ_CHR) {
+    throw std::runtime_error("gatt: bad heart rate access");
   }
 
-error:
-  ESP_LOGE(TAG.c_str(),
-           "unexpected access operation to heart rate "
-           "characteristic, opcode: %d",
-           ctxt->op);
+  // Verify connection handle
+  if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+    ESP_LOGI(TAG.c_str(), "characteristic read; conn_handle=%d attr_handle=%d",
+             conn_handle, attr_handle);
+  } else {
+    ESP_LOGI(TAG.c_str(), "characteristic read by nimble stack; attr_handle=%d",
+             attr_handle);
+  }
+
+  // Verify attribute handle
+  if (attr_handle == heart_rate_chr_val_handle) {
+    // Update access buffer value
+    heart_rate_chr_val[1] = get_heart_rate();
+    int rc = os_mbuf_append(ctxt->om, &heart_rate_chr_val,
+                            sizeof(heart_rate_chr_val));
+    return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+  }
+
   return BLE_ATT_ERR_UNLIKELY;
 }
 
@@ -141,13 +128,13 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
              attr_handle);
   }
 
-  /* Verify attribute handle */
+  // Verify attribute handle
   if (attr_handle != led_chr_val_handle) {
     throw std::runtime_error(
         "unexpected access operation on led characteristic");
   }
 
-  /* Verify access buffer length */
+  // Verify access buffer length
   if (ctxt->om->om_len != 1) {
     throw std::runtime_error(
         "unexpected access operation on led characteristic");

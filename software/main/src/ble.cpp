@@ -77,15 +77,6 @@ void Ble::init_nimble_port() {
   }
 }
 
-void Ble::nimble_host_config_init() {
-  ble_hs_cfg.reset_cb = on_stack_reset;
-  ble_hs_cfg.sync_cb = on_stack_sync;
-  ble_hs_cfg.gatts_register_cb = gatt_svr_register_cb;
-  ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
-
-  ble_store_config_init();
-}
-
 void Ble::choose_antenna(Antenna antenna) {
   // enable rf switch
   gpio_reset_pin(rf_switch_gpio);

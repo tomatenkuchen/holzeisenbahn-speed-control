@@ -7,6 +7,7 @@
  */
 
 #include "gap.hpp"
+#include "gatt.hpp"
 #include "hal/gpio_types.h"
 #include "host/ble_uuid.h"
 #include <array>

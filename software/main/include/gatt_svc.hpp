@@ -21,3 +21,11 @@ void gatt_svr_subscribe_cb(struct ble_gap_event *event);
 ///     2. Update NimBLE host GATT services counter
 ///     3. Add GATT services to server
 void gatt_svc_init();
+
+class Gatt {
+public:
+  Gatt() {}
+  ~Gatt() {}
+
+private:
+}
