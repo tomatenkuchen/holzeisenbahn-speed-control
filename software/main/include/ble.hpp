@@ -98,6 +98,7 @@ private:
 
   /// generic attributes service
   gap::Gap gap;
+  gatt::Gatt gatt;
 
   void init_nvs();
   void init_nimble_port();

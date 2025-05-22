@@ -22,10 +22,17 @@ void gatt_svr_subscribe_cb(struct ble_gap_event *event);
 ///     3. Add GATT services to server
 void gatt_svc_init();
 
+namespace gatt {
+
 class Gatt {
 public:
   Gatt() {}
+
   ~Gatt() {}
 
+  void service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg);
+
 private:
-}
+};
+
+} // namespace gatt

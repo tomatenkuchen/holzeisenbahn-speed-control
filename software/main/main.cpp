@@ -23,7 +23,8 @@ void speed_control_task(void *param) {
 
 ble::Ble *ble_ptr;
 
-void on_stack_reset() { ble_ptr-> }
+void on_stack_reset() { ble_ptr->advertize(true); }
+
 void ble_nimble_task(void *param) {
   ble::Ble ble("henri-lok", ble::Ble::Antenna::external);
 
@@ -32,7 +33,9 @@ void ble_nimble_task(void *param) {
 }
 
 void on_stack_reset() { ESP_LOGI("main", "ble stack reset"); }
+
 void on_stack_sync() { ble_ptr->advertize(true); }
+
 void gatt_service_register_callback() {
   ble_ptr->gatt.service_register_callback();
 }
