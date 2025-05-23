@@ -2,8 +2,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "gatt_svc.hpp"
-#include "heart_rate.hpp"
+#include "gatt.hpp"
 #include "host/ble_gatt.h"
 #include "host/ble_hs.h"
 #include "host/ble_uuid.h"
@@ -161,7 +160,7 @@ void send_heart_rate_indication() {
   }
 }
 
-void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
+void gatt_svr_register_cb(ble_gatt_register_ctxt *ctxt, void *arg) {
   /* Local variables */
   char buf[BLE_UUID_STR_LEN];
 
@@ -195,7 +194,7 @@ void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg) {
   }
 }
 
-void gatt_svr_subscribe_cb(struct ble_gap_event *event) {
+void gatt_svr_subscribe_cb(ble_gap_event *event) {
   /* Check connection handle */
   if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
     ESP_LOGI(TAG.c_str(), "subscribe event; conn_handle=%d attr_handle=%d",

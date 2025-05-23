@@ -4,7 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "gap.hpp"
-#include "gatt_svc.hpp"
+#include "gatt.hpp"
 #include "host/ble_hs.h"
 #include "host/ble_uuid.h"
 #include "host/util/util.h"
@@ -14,6 +14,7 @@
 #include "nimble/nimble_port_freertos.h"
 #include "nvs_flash.h"
 #include "sdkconfig.h"
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 

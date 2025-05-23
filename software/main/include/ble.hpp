@@ -88,6 +88,10 @@ public:
   /// @brief handles gap events
   int event_handler(ble_gap_event *event);
 
+  /// generic attributes service
+  gap::Gap gap;
+  gatt::Gatt gatt;
+
 private:
   /// switch pin to switch antenna switch on or off
   constexpr static inline gpio_num_t rf_switch_gpio =
@@ -95,10 +99,6 @@ private:
   /// switch to select antenna
   constexpr static inline gpio_num_t antenna_switch_gpio =
       static_cast<gpio_num_t>(14);
-
-  /// generic attributes service
-  gap::Gap gap;
-  gatt::Gatt gatt;
 
   void init_nvs();
   void init_nimble_port();

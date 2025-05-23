@@ -23,27 +23,26 @@ void speed_control_task(void *param) {
 
 ble::Ble *ble_ptr;
 
-void on_stack_reset() { ble_ptr->advertize(true); }
-
 void ble_nimble_task(void *param) {
   ble::Ble ble("henri-lok", ble::Ble::Antenna::external);
+  ble_ptr = &ble;
 
   ble.nimble_host_task();
   vTaskDelete(NULL);
 }
 
-void on_stack_reset() { ESP_LOGI("main", "ble stack reset"); }
+void on_stack_reset(int reason) { ESP_LOGI("main", "ble stack reset"); }
 
 void on_stack_sync() { ble_ptr->advertize(true); }
 
-void gatt_service_register_callback() {
-  ble_ptr->gatt.service_register_callback();
+void service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
+  ble_ptr->gatt.service_register_callback(ctxt, arg);
 }
 
 void add_callbacks() {
   ble_hs_cfg.reset_cb = on_stack_reset;
   ble_hs_cfg.sync_cb = on_stack_sync;
-  ble_hs_cfg.gatts_register_cb = gatt_service_register_callback;
+  ble_hs_cfg.gatts_register_cb = service_register_callback;
   ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
 
   ble_store_config_init();

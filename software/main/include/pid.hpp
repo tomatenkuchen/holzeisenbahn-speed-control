@@ -6,47 +6,69 @@
 
 #pragma once
 
-#include <utility>
-
 namespace sig {
-template <T> class PIDController {
+
+/// @brief PID controller class for signal control
+template <typename T> class PIDController {
 public:
   struct Config {
+    /// amplification factor for integrator
     T amp_i;
+    /// amplification factor for proportional
     T amp_p;
+    /// amplification factor for differential
     T amp_d;
+    /// max controller output
     T limit_max;
+    /// min controller output
     T limit_min;
   };
 
+  /// @brief constructs controller by config
+  /// @param cfg configuration
   PIDController(Config const &cfg);
+
+  /// @brief feed new control error to controller and calculate response
+  /// @param input new control error input
+  /// @return controller output (sometimes shown as y in literature)
   T update(T input);
+
+  /// @brief resets state in controller
+  /// @param init new initial value for integrator
   void reset(T init);
+
+  /// @return current value of integrator state without new input
   void value();
 
 private:
+  /// integrator state
   mutable T i_integrator = 0;
+  /// differentiator state
   mutable T d_state = 0;
+  /// configuration
   Config cfg;
 };
 
 template <T>
-PIDController::PIDController(Config const &cfg) : cfg{std::move(cfg)} {}
+PIDController<T>::PIDController(PIDController<T>::Config const &_cfg)
+    : cfg{_cfg} {}
 
-template <T> PIDController::update(T error) {
-  auto const out_p = cfg.amp_p * error;
-  auto const out_d = (error - d_state) * cfg.amp_d;
-  auto const out_i += cfg.amp_i * error;
-  d_integrator = error;
+template <T> PIDController<T>::update(T input) {
+  auto const out_p = cfg.amp_p * input;
+
+  auto const out_i += cfg.amp_i * input;
+
+  auto const out_d = (input - d_state) * cfg.amp_d;
+  d_integrator = input;
 
   return out_p + out_d + out_i;
 }
 
-template <T> PIDController::reset(T init) {
+template <T> PIDController<T>::reset(T init) {
   i_integrator = init * cfg.amp_i;
   d_state = 0;
 }
 
-template <T> PIDController::value() const { return i_integrator; }
+template <T> PIDController<T>::value() const { return i_integrator; }
 
 }; // namespace sig

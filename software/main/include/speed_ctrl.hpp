@@ -8,7 +8,7 @@
 #include "driver/mcpwm_oper.h"
 #include "driver/mcpwm_timer.h"
 #include "pid.hpp"
-#include <cstdtint>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 
@@ -102,8 +102,18 @@ private:
 };
 
 class SpeedControl {
+  constexpr MotorControl::Config control_cfg = {0};
+  constexpr MeasureSpeed::Config measure_cfg = {0};
+  constexpr sig::PIDController<float>::Config pid_cfg = {
+      .amp_i = 1,
+      .amp_p = 2,
+      .amp_d = 0,
+      .limit_max = 5,
+      .limit_min = -5,
+  };
+
 public:
-  SpeedControl() {}
+  SpeedControl() : measure(measure_cfg), control(control_cfg), pid(pid_cfg) {}
   ~SpeedControl() {}
 
   void set_ref_speed_m_per_s(float speed_m_per_s) {
@@ -112,7 +122,7 @@ public:
 
   void on_tacho_event() {
     measure.on_tacho_event();
-    float const current_speed = measure.get_speed();
+    float const current_speed = measure.get_speed_m_per_s();
     float const error = speed_ref_m_per_s - current_speed;
     int32_t const duty = pid.update(error);
     control.set_duty(duty);
@@ -121,7 +131,8 @@ public:
 private:
   MeasureSpeed measure;
   MotorControl control;
-  PID<int32_t> pid;
+  sig::PIDController<float> pid;
   float speed_ref_m_per_s;
 };
+
 } // namespace drive
