@@ -60,7 +60,6 @@ Gap::Gap(std::string _device_name)
           .itvl_min = BLE_GAP_ADV_ITVL_MS(500),
           .itvl_max = BLE_GAP_ADV_ITVL_MS(510),
       } {
-
   ble_svc_gap_init();
 
   // if (ble_svc_gap_device_name_set(device_name.c_str()) != 0) {
@@ -97,9 +96,13 @@ void Gap::start_advertising() {
     throw std::runtime_error("failed to set scan response data");
   }
 
+  auto event_callback = [this](ble_gap_event *event, void *args) mutable {
+    return event_handler(event);
+  };
+
   // Start advertising
   if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params,
-                        gap_event_handler, NULL) != 0) {
+                        event_callback, NULL) != 0) {
     throw std::runtime_error("failed to start advertising");
   }
 

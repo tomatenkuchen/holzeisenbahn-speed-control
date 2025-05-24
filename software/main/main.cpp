@@ -33,7 +33,7 @@ void ble_nimble_task(void *param) {
 
 void on_stack_reset(int reason) { ESP_LOGI("main", "ble stack reset"); }
 
-void on_stack_sync() { ble_ptr->advertize(true); }
+void on_stack_sync() { ble_ptr->advertize(); }
 
 void service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
   ble_ptr->gatt.service_register_callback(ctxt, arg);

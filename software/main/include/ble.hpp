@@ -82,8 +82,7 @@ public:
   void nimble_host_task();
 
   /// @brief control advertizing
-  /// @param enable true -> start, false -> stop
-  void advertize(bool enable);
+  void advertize();
 
   /// @brief handles gap events
   int event_handler(ble_gap_event *event);
