@@ -38,37 +38,37 @@ public:
   void reset(T init);
 
   /// @return current value of integrator state without new input
-  void value();
+  T value() const;
 
 private:
   /// integrator state
-  mutable T i_integrator = 0;
+  mutable T i_state = 0;
   /// differentiator state
   mutable T d_state = 0;
   /// configuration
   Config cfg;
 };
 
-template <T>
+template <typename T>
 PIDController<T>::PIDController(PIDController<T>::Config const &_cfg)
     : cfg{_cfg} {}
 
-template <T> PIDController<T>::update(T input) {
+template <typename T> T PIDController<T>::update(T input) {
   auto const out_p = cfg.amp_p * input;
 
-  auto const out_i += cfg.amp_i * input;
+  i_state += cfg.amp_i * input;
 
   auto const out_d = (input - d_state) * cfg.amp_d;
-  d_integrator = input;
+  d_state = input;
 
-  return out_p + out_d + out_i;
+  return out_p + out_d + i_state;
 }
 
-template <T> PIDController<T>::reset(T init) {
-  i_integrator = init * cfg.amp_i;
+template <typename T> void PIDController<T>::reset(T init) {
+  i_state = init * cfg.amp_i;
   d_state = 0;
 }
 
-template <T> PIDController<T>::value() const { return i_integrator; }
+template <typename T> T PIDController<T>::value() const { return i_state; }
 
 }; // namespace sig

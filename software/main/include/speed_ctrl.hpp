@@ -102,9 +102,9 @@ private:
 };
 
 class SpeedControl {
-  constexpr MotorControl::Config control_cfg = {0};
-  constexpr MeasureSpeed::Config measure_cfg = {0};
-  constexpr sig::PIDController<float>::Config pid_cfg = {
+  constexpr static MotorControl::Config control_cfg = {0};
+  constexpr static MeasureSpeed::Config measure_cfg = {0};
+  constexpr static sig::PIDController<float>::Config pid_cfg = {
       .amp_i = 1,
       .amp_p = 2,
       .amp_d = 0,

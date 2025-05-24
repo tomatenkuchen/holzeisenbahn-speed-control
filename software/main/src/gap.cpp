@@ -21,8 +21,8 @@ Gap::Gap(std::string _device_name)
       adv_fields{
           .flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP,
 
-          .name = device_name.c_str(),
-          .name_len = device_name.size(),
+          .name = reinterpret_cast<uint8_t const *>(device_name.c_str()),
+          .name_len = static_cast<uint8_t>(device_name.size()),
           .name_is_complete = 1,
 
           // Set device tx power
@@ -39,15 +39,15 @@ Gap::Gap(std::string _device_name)
       },
 
       rsp_fields{
+          .adv_itvl = BLE_GAP_ADV_ITVL_MS(500),
+          .adv_itvl_is_present = 1,
+
           .device_addr = addr_val,
           .device_addr_type = own_addr_type,
           .device_addr_is_present = 1,
 
           .uri = reinterpret_cast<uint8_t const *>(esp_uri.data()),
-          .uri_len = esp_uri.size(),
-
-          .adv_itvl = BLE_GAP_ADV_ITVL_MS(500),
-          .adv_itvl_is_present = 1,
+          .uri_len = static_cast<uint8_t>(esp_uri.size()),
       },
 
       // Set non-connetable and general discoverable mode to be a beacon
@@ -66,9 +66,9 @@ Gap::Gap(std::string _device_name)
   // if (ble_svc_gap_device_name_set(device_name.c_str()) != 0) {
   // throw std::runtime_error("failed to set device name");
   // }
-}
+  // auto const name = ble_svc_gap_device_name();
+  //
 
-void Gap::advertizing_start(ble_gap_event_fn gap_event_callback) {
   // Make sure we have proper BT identity address set (random preferred)
   if (ble_hs_util_ensure_addr(0) != 0) {
     throw std::runtime_error("device does not have any available bt address!");
@@ -86,13 +86,9 @@ void Gap::advertizing_start(ble_gap_event_fn gap_event_callback) {
   char addr_str[18] = {0};
   format_addr(addr_str, addr_val);
   ESP_LOGI(TAG.c_str(), "device address: %s", addr_str);
-
-  start_advertising(gap_event_callback);
 }
 
-void Gap::start_advertising(ble_gap_event_fn gap_event_callback) {
-  // auto const name = ble_svc_gap_device_name();
-
+void Gap::start_advertising() {
   if (ble_gap_adv_set_fields(&adv_fields) != 0) {
     throw std::runtime_error("failed to set advertising data");
   }

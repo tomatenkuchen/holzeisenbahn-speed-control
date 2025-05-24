@@ -26,13 +26,6 @@ namespace {
 
 constexpr std::string TAG = "ble";
 
-void on_stack_reset(int reason) {
-  // On reset, print reset reason to console
-  ESP_LOGI(TAG.c_str(), "nimble stack reset, reset reason: %d", reason);
-}
-
-void on_stack_sync() { gap.advertizing_start(); }
-
 } // namespace
 
 Ble::Ble(std::string device_name, Antenna antenna) : gap(device_name) {
@@ -51,8 +44,10 @@ void Ble::nimble_host_task() {
 void Ble::advertize(bool enable) {
   if (enable) {
     ESP_LOGI(TAG.c_str(), "start advertizing");
+    gap.start_advertizing();
   } else {
     ESP_LOGI(TAG.c_str(), "stop advertizing");
+    gap.start_advertizing();
   }
 }
 
