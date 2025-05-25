@@ -11,7 +11,7 @@
 
 namespace {
 
-void ble_store_config_init();
+extern "C" void ble_store_config_init();
 
 void speed_control_task(void *param) {
   drive::SpeedControl speed_control;

@@ -116,8 +116,8 @@ int Gap::connect_event(ble_gap_event *event) {
            event->connect.status == 0 ? "established" : "failed",
            event->connect.status);
 
-  // Connection succeeded
   if (event->connect.status != 0) {
+    // Connection failed
     start_advertising();
     return 0;
   }
