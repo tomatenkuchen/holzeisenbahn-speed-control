@@ -87,8 +87,6 @@ public:
   /// @brief handles gap events
   int event_handler(ble_gap_event *event);
 
-  /// generic attributes service
-  gap::Gap gap;
   gatt::Gatt gatt;
 
 private:

@@ -28,10 +28,11 @@ constexpr std::string TAG = "ble";
 
 } // namespace
 
-Ble::Ble(std::string device_name, Antenna antenna) : gap(this, device_name) {
+Ble::Ble(std::string device_name, Antenna antenna) {
   choose_antenna(antenna);
   init_nvs();
   init_nimble_port();
+  gap::init(device_name);
   gatt_svc_init();
   nimble_host_config_init();
 }
@@ -43,11 +44,7 @@ void Ble::nimble_host_task() {
 
 void Ble::advertize() {
   ESP_LOGI(TAG.c_str(), "start advertizing");
-  gap.start_advertising();
-}
-
-int Ble::event_handler(ble_gap_event *event) {
-  return gap.event_handler(event);
+  gap::start_advertising();
 }
 
 void Ble::init_nvs() {

@@ -1,6 +1,7 @@
 #include "esp_log.h"
 #include "gap.hpp"
 #include "gatt.hpp"
+#include "host/ble_gap.h"
 #include "host/ble_hs.h"
 #include "host/ble_uuid.h"
 #include "host/util/util.h"
@@ -9,107 +10,85 @@
 #include "nimble/nimble_port_freertos.h"
 #include "nvs_flash.h"
 #include "sdkconfig.h"
+#include "services/gap/ble_svc_gap.h"
 #include <stdexcept>
 #include <string>
 #include <string_view>
 
 namespace gap {
 
-Gap::Gap(std::string _device_name)
-    : device_name{_device_name},
+namespace {
 
-      adv_fields{
-          .flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP,
+constexpr static std::string_view esp_uri = "\x17//espressif.com";
+constexpr std::string TAG = "gap";
+uint8_t own_addr_type;
+uint8_t addr_val[6] = {0};
+std::string device_name;
 
-          .name = reinterpret_cast<uint8_t const *>(device_name.c_str()),
-          .name_len = static_cast<uint8_t>(device_name.size()),
-          .name_is_complete = 1,
+ble_hs_adv_fields adv_fields = {
+    .flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP,
 
-          // Set device tx power
-          .tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO,
-          .tx_pwr_lvl_is_present = 1,
+    // Set device tx power
+    .tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO,
+    .tx_pwr_lvl_is_present = 1,
 
-          // Set device appearance
-          .appearance = 0x0200,
-          .appearance_is_present = 1,
+    // Set device appearance
+    .appearance = 0x0200,
+    .appearance_is_present = 1,
 
-          // Set device LE role
-          .le_role = 0,
-          .le_role_is_present = 1,
-      },
+    // Set device LE role
+    .le_role = 0,
+    .le_role_is_present = 1,
+};
 
-      rsp_fields{
-          .adv_itvl = BLE_GAP_ADV_ITVL_MS(500),
-          .adv_itvl_is_present = 1,
+ble_hs_adv_fields rsp_fields = {
+    .adv_itvl = BLE_GAP_ADV_ITVL_MS(500),
+    .adv_itvl_is_present = 1,
 
-          .device_addr = addr_val,
-          .device_addr_type = own_addr_type,
-          .device_addr_is_present = 1,
+    .device_addr = addr_val,
+    .device_addr_type = own_addr_type,
+    .device_addr_is_present = 1,
 
-          .uri = reinterpret_cast<uint8_t const *>(esp_uri.data()),
-          .uri_len = static_cast<uint8_t>(esp_uri.size()),
-      },
+    .uri = reinterpret_cast<uint8_t const *>(esp_uri.data()),
+    .uri_len = static_cast<uint8_t>(esp_uri.size()),
+};
 
-      // Set non-connetable and general discoverable mode to be a beacon
-      adv_params{
+ble_gap_adv_params adv_params = {
+    .conn_mode = BLE_GAP_CONN_MODE_UND,
+    .disc_mode = BLE_GAP_DISC_MODE_GEN,
 
-          .conn_mode = BLE_GAP_CONN_MODE_UND,
-          .disc_mode = BLE_GAP_DISC_MODE_GEN,
+    // Set advertising interval
+    .itvl_min = BLE_GAP_ADV_ITVL_MS(500),
+    .itvl_max = BLE_GAP_ADV_ITVL_MS(510),
+};
 
-          // Set advertising interval
-          .itvl_min = BLE_GAP_ADV_ITVL_MS(500),
-          .itvl_max = BLE_GAP_ADV_ITVL_MS(510),
-      } {
-  ble_svc_gap_init();
+void format_addr(char *addr_str, uint8_t addr[]) {
+  sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2],
+          addr[3], addr[4], addr[5]);
+}
 
-  // if (ble_svc_gap_device_name_set(device_name.c_str()) != 0) {
-  // throw std::runtime_error("failed to set device name");
-  // }
-  // auto const name = ble_svc_gap_device_name();
-  //
-
-  // Make sure we have proper BT identity address set (random preferred)
-  if (ble_hs_util_ensure_addr(0) != 0) {
-    throw std::runtime_error("device does not have any available bt address!");
-  }
-
-  // Figure out BT address to use while advertising (no privacy for now)
-  if (ble_hs_id_infer_auto(0, &own_addr_type) != 0) {
-    throw std::runtime_error("failed to infer address type");
-  }
-
-  if (ble_hs_id_copy_addr(own_addr_type, addr_val, NULL) != 0) {
-    throw std::runtime_error("failed to copy device address");
-  }
-
+void print_conn_desc(ble_gap_conn_desc *desc) {
   char addr_str[18] = {0};
-  format_addr(addr_str, addr_val);
-  ESP_LOGI(TAG.c_str(), "device address: %s", addr_str);
+
+  ESP_LOGI(TAG.c_str(), "connection handle: %d", desc->conn_handle);
+
+  format_addr(addr_str, desc->our_id_addr.val);
+  ESP_LOGI(TAG.c_str(), "device id address: type=%d, value=%s",
+           desc->our_id_addr.type, addr_str);
+
+  format_addr(addr_str, desc->peer_id_addr.val);
+  ESP_LOGI(TAG.c_str(), "peer id address: type=%d, value=%s",
+           desc->peer_id_addr.type, addr_str);
+
+  ESP_LOGI(TAG.c_str(),
+           "conn_itvl=%d, conn_latency=%d, supervision_timeout=%d, "
+           "encrypted=%d, authenticated=%d, bonded=%d\n",
+           desc->conn_itvl, desc->conn_latency, desc->supervision_timeout,
+           desc->sec_state.encrypted, desc->sec_state.authenticated,
+           desc->sec_state.bonded);
 }
 
-void Gap::start_advertising() {
-  if (ble_gap_adv_set_fields(&adv_fields) != 0) {
-    throw std::runtime_error("failed to set advertising data");
-  }
-
-  if (ble_gap_adv_rsp_set_fields(&rsp_fields) != 0) {
-    throw std::runtime_error("failed to set scan response data");
-  }
-
-  auto event_callback = [this](ble_gap_event *event, void *args) mutable {
-    return event_handler(event);
-  };
-
-  // Start advertising
-  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params,
-                        event_callback, NULL) != 0) {
-    throw std::runtime_error("failed to start advertising");
-  }
-
-  ESP_LOGI(TAG.c_str(), "advertising started!");
-}
-
-int Gap::connect_event(ble_gap_event *event) {
+int connect_event(ble_gap_event *event) {
 
   // A new connection was established or a connection attempt failed
   ESP_LOGI(TAG.c_str(), "connection %s; status=%d",
@@ -146,7 +125,7 @@ int Gap::connect_event(ble_gap_event *event) {
   return 0;
 }
 
-void Gap::disconnect_event(ble_gap_event *event) {
+void disconnect_event(ble_gap_event *event) {
   // A connection was terminated, print connection descriptor
   ESP_LOGI(TAG.c_str(), "disconnected from peer; reason=%d",
            event->disconnect.reason);
@@ -155,7 +134,7 @@ void Gap::disconnect_event(ble_gap_event *event) {
   start_advertising();
 }
 
-void Gap::update_event(ble_gap_event *event) {
+void update_event(ble_gap_event *event) {
   // The central has updated the connection parameters
   ESP_LOGI(TAG.c_str(), "connection updated; status=%d",
            event->conn_update.status);
@@ -169,14 +148,14 @@ void Gap::update_event(ble_gap_event *event) {
   print_conn_desc(&desc);
 }
 
-void Gap::advertizing_complete_event(ble_gap_event *event) {
+void advertizing_complete_event(ble_gap_event *event) {
   // Advertising completed, restart advertising
   ESP_LOGI(TAG.c_str(), "advertise complete; reason=%d",
            event->adv_complete.reason);
   start_advertising();
 }
 
-void Gap::notify_event(ble_gap_event *event) {
+void notify_event(ble_gap_event *event) {
   if ((event->notify_tx.status != 0) &&
       (event->notify_tx.status != BLE_HS_EDONE)) {
     // Print notification info on error
@@ -188,7 +167,7 @@ void Gap::notify_event(ble_gap_event *event) {
   }
 }
 
-void Gap::subscribe_event(ble_gap_event *event) {
+void subscribe_event(ble_gap_event *event) {
 
   // Print subscription info to log
   ESP_LOGI(TAG.c_str(),
@@ -203,13 +182,17 @@ void Gap::subscribe_event(ble_gap_event *event) {
   gatt_svr_subscribe_cb(event);
 }
 
-void Gap::mtu_event(ble_gap_event *event) {
+void mtu_event(ble_gap_event *event) {
   // Print MTU update info to log
   ESP_LOGI(TAG.c_str(), "mtu update event; conn_handle=%d cid=%d mtu=%d",
            event->mtu.conn_handle, event->mtu.channel_id, event->mtu.value);
 }
 
-int Gap::event_handler(ble_gap_event *event) {
+/// callback routine for gap event servicing
+/// @param event type of event that occured
+/// @param args additional info besides event data. not used by any callback but
+/// required by callback type
+int event_handler(ble_gap_event *event, void *args) {
 
   // Handle different GAP event
   switch (event->type) {
@@ -240,30 +223,54 @@ int Gap::event_handler(ble_gap_event *event) {
   return 0;
 }
 
-void Gap::format_addr(char *addr_str, uint8_t addr[]) {
-  sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2],
-          addr[3], addr[4], addr[5]);
-}
+} // namespace
 
-void Gap::print_conn_desc(ble_gap_conn_desc *desc) {
+void init(std::string _device_name) {
+  // fill in device name to advertizing struct
+  device_name = _device_name;
+  adv_fields.name = reinterpret_cast<uint8_t const *>(device_name.c_str());
+  adv_fields.name_len = static_cast<uint8_t>(device_name.size());
+  adv_fields.name_is_complete = 1;
+
+  ble_svc_gap_init();
+
+  // Make sure we have proper BT identity address set (random preferred)
+  if (ble_hs_util_ensure_addr(0) != 0) {
+    throw std::runtime_error("device does not have any available bt address!");
+  }
+
+  // Figure out BT address to use while advertising (no privacy for now)
+  if (ble_hs_id_infer_auto(0, &own_addr_type) != 0) {
+    throw std::runtime_error("failed to infer address type");
+  }
+
+  if (ble_hs_id_copy_addr(own_addr_type, addr_val, NULL) != 0) {
+    throw std::runtime_error("failed to copy device address");
+  }
+
   char addr_str[18] = {0};
-
-  ESP_LOGI(TAG.c_str(), "connection handle: %d", desc->conn_handle);
-
-  format_addr(addr_str, desc->our_id_addr.val);
-  ESP_LOGI(TAG.c_str(), "device id address: type=%d, value=%s",
-           desc->our_id_addr.type, addr_str);
-
-  format_addr(addr_str, desc->peer_id_addr.val);
-  ESP_LOGI(TAG.c_str(), "peer id address: type=%d, value=%s",
-           desc->peer_id_addr.type, addr_str);
-
-  ESP_LOGI(TAG.c_str(),
-           "conn_itvl=%d, conn_latency=%d, supervision_timeout=%d, "
-           "encrypted=%d, authenticated=%d, bonded=%d\n",
-           desc->conn_itvl, desc->conn_latency, desc->supervision_timeout,
-           desc->sec_state.encrypted, desc->sec_state.authenticated,
-           desc->sec_state.bonded);
+  format_addr(addr_str, addr_val);
+  ESP_LOGI(TAG.c_str(), "device address: %s", addr_str);
 }
+
+void start_advertising() {
+  if (ble_gap_adv_set_fields(&adv_fields) != 0) {
+    throw std::runtime_error("failed to set advertising data");
+  }
+
+  if (ble_gap_adv_rsp_set_fields(&rsp_fields) != 0) {
+    throw std::runtime_error("failed to set scan response data");
+  }
+
+  // Start advertising
+  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params,
+                        event_handler, NULL) != 0) {
+    throw std::runtime_error("failed to start advertising");
+  }
+
+  ESP_LOGI(TAG.c_str(), "advertising started!");
+}
+
+void stop_advertizing() { ble_gap_adv_stop(); }
 
 } // namespace gap

@@ -103,7 +103,7 @@ int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
   // Verify attribute handle
   if (attr_handle == heart_rate_chr_val_handle) {
     // Update access buffer value
-    heart_rate_chr_val[1] = get_heart_rate();
+    // heart_rate_chr_val[1] = get_heart_rate();
     int rc = os_mbuf_append(ctxt->om, &heart_rate_chr_val,
                             sizeof(heart_rate_chr_val));
     return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
