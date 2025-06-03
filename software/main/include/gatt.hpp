@@ -1,3 +1,6 @@
+/// @file gatt.hpp
+/// @brief contains ble gatt service logic
+
 #pragma once
 
 #include "host/ble_gap.h"

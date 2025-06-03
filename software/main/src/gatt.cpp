@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <string>
 
+namespace gatt {
 namespace {
 
 constexpr std::string TAG = "gatt";
@@ -160,37 +161,46 @@ void send_heart_rate_indication() {
   }
 }
 
-void gatt_svr_register_cb(ble_gatt_register_ctxt *ctxt, void *arg) {
-  /* Local variables */
+void Gatt::service_register_event(ble_gatt_register_ctxt *ctxt) {
+  char buf[BLE_UUID_STR_LEN];
+  ESP_LOGD(TAG.c_str(), "registered service %s with handle=%d",
+           ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
+}
+
+void Gatt::characteristic_register_event(ble_gatt_register_ctxt *ctxt) {
+  char buf[BLE_UUID_STR_LEN];
+  ESP_LOGD(TAG.c_str(),
+           "registering characteristic %s with "
+           "def_handle=%d val_handle=%d",
+           ble_uuid_to_str(ctxt->chr.chr_def->uuid, buf), ctxt->chr.def_handle,
+           ctxt->chr.val_handle);
+}
+
+void Gatt::descriptor_register_event(ble_gatt_register_ctxt *ctxt) {
+  ESP_LOGD(TAG.c_str(), "registering descriptor %s with handle=%d",
+           ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf), ctxt->dsc.handle);
+}
+
+void Gatt::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
   char buf[BLE_UUID_STR_LEN];
 
   /* Handle GATT attributes register events */
   switch (ctxt->op) {
 
-  /* Service register event */
   case BLE_GATT_REGISTER_OP_SVC:
-    ESP_LOGD(TAG.c_str(), "registered service %s with handle=%d",
-             ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
-    break;
+    service_register_event(ctxt);
+    return;
 
-  /* Characteristic register event */
   case BLE_GATT_REGISTER_OP_CHR:
-    ESP_LOGD(TAG.c_str(),
-             "registering characteristic %s with "
-             "def_handle=%d val_handle=%d",
-             ble_uuid_to_str(ctxt->chr.chr_def->uuid, buf),
-             ctxt->chr.def_handle, ctxt->chr.val_handle);
-    break;
+    characteristic_register_event(ctxt);
+    return;
 
-  /* Descriptor register event */
   case BLE_GATT_REGISTER_OP_DSC:
-    ESP_LOGD(TAG.c_str(), "registering descriptor %s with handle=%d",
-             ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf), ctxt->dsc.handle);
-    break;
+    descriptor_register_event(ctxt);
+    return;
 
   default:
-    assert(0);
-    break;
+    return;
   }
 }
 
@@ -213,7 +223,7 @@ void gatt_svr_subscribe_cb(ble_gap_event *event) {
   }
 }
 
-void gatt_svc_init() {
+Gatt::Gatt() {
   ble_svc_gatt_init();
 
   if (ble_gatts_count_cfg(ble_services.data()) != 0) {
@@ -224,3 +234,5 @@ void gatt_svc_init() {
     throw std::runtime_error("gatt service inclusion failed");
   }
 }
+
+} // namespace gatt
