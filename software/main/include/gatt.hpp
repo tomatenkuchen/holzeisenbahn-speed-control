@@ -33,9 +33,15 @@ public:
 
   ~Gatt() {}
 
+  /// Handle GATT attributes register events
+  /// @param ctxt state structure for callback meta data
+  /// @param arg additional arguments if given
   void service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg);
 
 private:
+  void service_register_event(ble_gatt_register_ctxt *ctxt);
+  void characteristic_register_event(ble_gatt_register_ctxt *ctxt);
+  void descriptor_register_event(ble_gatt_register_ctxt *ctxt);
 };
 
 } // namespace gatt

@@ -177,14 +177,12 @@ void Gatt::characteristic_register_event(ble_gatt_register_ctxt *ctxt) {
 }
 
 void Gatt::descriptor_register_event(ble_gatt_register_ctxt *ctxt) {
+  char buf[BLE_UUID_STR_LEN];
   ESP_LOGD(TAG.c_str(), "registering descriptor %s with handle=%d",
            ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf), ctxt->dsc.handle);
 }
 
 void Gatt::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
-  char buf[BLE_UUID_STR_LEN];
-
-  /* Handle GATT attributes register events */
   switch (ctxt->op) {
 
   case BLE_GATT_REGISTER_OP_SVC:
@@ -200,12 +198,13 @@ void Gatt::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
     return;
 
   default:
+    throw std::runtime_error("gatt service register error");
     return;
   }
 }
 
 void gatt_svr_subscribe_cb(ble_gap_event *event) {
-  /* Check connection handle */
+  // Check connection handle
   if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
     ESP_LOGI(TAG.c_str(), "subscribe event; conn_handle=%d attr_handle=%d",
              event->subscribe.conn_handle, event->subscribe.attr_handle);
@@ -214,9 +213,9 @@ void gatt_svr_subscribe_cb(ble_gap_event *event) {
              event->subscribe.attr_handle);
   }
 
-  /* Check attribute handle */
+  // Check attribute handle
   if (event->subscribe.attr_handle == heart_rate_chr_val_handle) {
-    /* Update heart rate subscription status */
+    // Update heart rate subscription status
     heart_rate_chr_conn_handle = event->subscribe.conn_handle;
     heart_rate_chr_conn_handle_inited = true;
     heart_rate_ind_status = event->subscribe.cur_indicate;
