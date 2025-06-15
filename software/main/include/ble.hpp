@@ -2,8 +2,6 @@
 /// @brief bluetooth low energy class
 /// @copyright GPL v2.0
 
-#include "gap.hpp"
-#include "gatt.hpp"
 #include "hal/gpio_types.h"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
@@ -14,37 +12,6 @@
 #include <variant>
 
 namespace ble {
-
-/// initialize gap server and start advertizing
-void init(std::string _device_name);
-
-/// start advertizing on demand. stops when connection is established
-void start_advertising();
-
-/// stop current advertizing in progress
-void stop_advertizing();
-
-class Gatt {
-public:
-  Gatt();
-
-  /// Handle GATT attributes register events
-  /// @param ctxt state structure for callback meta data
-  /// @param arg additional arguments if given
-  void service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg);
-
-  /// gets called when a client subscribes to a characteristic
-  /// @param event carries event meta data to process
-  void server_subscribe_callback(ble_gap_event *event);
-
-  /// update indication flag for heart rate characteristic
-  void send_heart_rate_indication();
-
-private:
-  void service_register_event(ble_gatt_register_ctxt *ctxt);
-  void characteristic_register_event(ble_gatt_register_ctxt *ctxt);
-  void descriptor_register_event(ble_gatt_register_ctxt *ctxt);
-};
 
 /// uuid for predfined characteristic
 struct UUID16 {
@@ -106,7 +73,19 @@ public:
   /// @brief constructor
   /// @param device_name advertizing name of device
   /// @param antenna choose which antenna to use
-  Ble(std::string device_name, Antenna antenna = Antenna::internal);
+  Ble(std::string _device_name, Antenna antenna = Antenna::internal);
+
+  /// Handle GATT attributes register events
+  /// @param ctxt state structure for callback meta data
+  /// @param arg additional arguments if given
+  void service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg);
+
+  /// gets called when a client subscribes to a characteristic
+  /// @param event carries event meta data to process
+  void server_subscribe_callback(ble_gap_event *event);
+
+  /// update indication flag for heart rate characteristic
+  void send_heart_rate_indication();
 
   /// @brief nimble base task
   void nimble_host_task();
@@ -117,7 +96,11 @@ public:
   /// @brief handles gap events
   int event_handler(ble_gap_event *event);
 
-  gatt::Gatt gatt;
+  /// start advertizing on demand. stops when connection is established
+  void start_advertising();
+
+  /// stop current advertizing in progress
+  void stop_advertizing();
 
 private:
   /// switch pin to switch antenna switch on or off
@@ -128,8 +111,15 @@ private:
       static_cast<gpio_num_t>(14);
 
   void init_nvs();
+  void init_gap(std::string _device_name);
+  void init_gatt();
   void init_nimble_port();
   void nimble_host_config_init();
   void choose_antenna(Antenna antenna);
+  void mtu_event(ble_gap_event *event);
+  int event_handler(ble_gap_event *event, void *args);
+  void service_register_event(ble_gatt_register_ctxt *ctxt);
+  void characteristic_register_event(ble_gatt_register_ctxt *ctxt);
+  void descriptor_register_event(ble_gatt_register_ctxt *ctxt);
 };
 } // namespace ble

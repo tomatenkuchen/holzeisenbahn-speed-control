@@ -3,8 +3,6 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "gap.hpp"
-#include "gatt.hpp"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
 #include "host/ble_hs.h"
@@ -180,13 +178,13 @@ void update_heartrate_subscription_state(ble_gap_event const *const event) {
   heart_rate_ind_status = event->subscribe.cur_indicate;
 }
 
-void Gatt::service_register_event(ble_gatt_register_ctxt *ctxt) {
+void Ble::service_register_event(ble_gatt_register_ctxt *ctxt) {
   char buf[BLE_UUID_STR_LEN];
   ESP_LOGD(TAG.c_str(), "registered service %s with handle=%d",
            ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
 }
 
-void Gatt::characteristic_register_event(ble_gatt_register_ctxt *ctxt) {
+void Ble::characteristic_register_event(ble_gatt_register_ctxt *ctxt) {
   char buf[BLE_UUID_STR_LEN];
   ESP_LOGD(TAG.c_str(),
            "registering characteristic %s with "
@@ -195,13 +193,13 @@ void Gatt::characteristic_register_event(ble_gatt_register_ctxt *ctxt) {
            ctxt->chr.val_handle);
 }
 
-void Gatt::descriptor_register_event(ble_gatt_register_ctxt *ctxt) {
+void Ble::descriptor_register_event(ble_gatt_register_ctxt *ctxt) {
   char buf[BLE_UUID_STR_LEN];
   ESP_LOGD(TAG.c_str(), "registering descriptor %s with handle=%d",
            ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf), ctxt->dsc.handle);
 }
 
-void Gatt::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
+void Ble::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
   switch (ctxt->op) {
 
   case BLE_GATT_REGISTER_OP_SVC:
@@ -221,14 +219,14 @@ void Gatt::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
   }
 }
 
-void Gatt::send_heart_rate_indication() {
+void Ble::send_heart_rate_indication() {
   if (heart_rate_ind_status && heart_rate_chr_conn_handle_inited) {
     ble_gatts_indicate(heart_rate_chr_conn_handle, heart_rate_chr_val_handle);
     ESP_LOGI(TAG.c_str(), "heart rate indication sent!");
   }
 }
 
-void Gatt::server_subscribe_callback(ble_gap_event *event) {
+void Ble::server_subscribe_callback(ble_gap_event *event) {
   log_event_type(event);
 
   // Check attribute handle
@@ -386,7 +384,7 @@ void notify_event(ble_gap_event *event) {
 
 } // namespace
 
-void subscribe_event(ble_gap_event *event) {
+void Ble::subscribe_event(ble_gap_event *event) {
 
   // Print subscription info to log
   ESP_LOGI(TAG.c_str(),
@@ -398,10 +396,10 @@ void subscribe_event(ble_gap_event *event) {
            event->subscribe.cur_indicate);
 
   // GATT subscribe event callback
-  gatt_svr_subscribe_cb(event);
+  gatt.service_subscribe_callback(event);
 }
 
-void mtu_event(ble_gap_event *event) {
+void Ble::mtu_event(ble_gap_event *event) {
   // Print MTU update info to log
   ESP_LOGI(TAG.c_str(), "mtu update event; conn_handle=%d cid=%d mtu=%d",
            event->mtu.conn_handle, event->mtu.channel_id, event->mtu.value);
@@ -411,7 +409,7 @@ void mtu_event(ble_gap_event *event) {
 /// @param event type of event that occured
 /// @param args additional info besides event data. not used by any callback but
 /// required by callback type
-int event_handler(ble_gap_event *event, void *args) {
+int Ble::event_handler(ble_gap_event *event, void *args) {
 
   // Handle different GAP event
   switch (event->type) {
@@ -442,7 +440,39 @@ int event_handler(ble_gap_event *event, void *args) {
   return 0;
 }
 
-void init(std::string _device_name) {
+void Ble::start_advertising() {
+  if (ble_gap_adv_set_fields(&adv_fields) != 0) {
+    throw std::runtime_error("failed to set advertising data");
+  }
+
+  if (ble_gap_adv_rsp_set_fields(&rsp_fields) != 0) {
+    throw std::runtime_error("failed to set scan response data");
+  }
+
+  // Start advertising
+  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params,
+                        event_handler, NULL) != 0) {
+    throw std::runtime_error("failed to start advertising");
+  }
+
+  ESP_LOGI(TAG.c_str(), "advertising started!");
+}
+
+void stop_advertizing() { ble_gap_adv_stop(); }
+
+Ble::init_gatt() {
+  ble_svc_gatt_init();
+
+  if (ble_gatts_count_cfg(ble_services.data()) != 0) {
+    throw std::runtime_error("gatt service counter update failed");
+  }
+
+  if (ble_gatts_add_svcs(ble_services.data()) != 0) {
+    throw std::runtime_error("gatt service inclusion failed");
+  }
+}
+
+void Ble::init_gap(std::string _device_name) {
   // fill in device name to advertizing struct
   device_name = _device_name;
   adv_fields.name = reinterpret_cast<uint8_t const *>(device_name.c_str());
@@ -470,44 +500,13 @@ void init(std::string _device_name) {
   ESP_LOGI(TAG.c_str(), "device address: %s", addr_str);
 }
 
-void start_advertising() {
-  if (ble_gap_adv_set_fields(&adv_fields) != 0) {
-    throw std::runtime_error("failed to set advertising data");
-  }
-
-  if (ble_gap_adv_rsp_set_fields(&rsp_fields) != 0) {
-    throw std::runtime_error("failed to set scan response data");
-  }
-
-  // Start advertising
-  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params,
-                        event_handler, NULL) != 0) {
-    throw std::runtime_error("failed to start advertising");
-  }
-
-  ESP_LOGI(TAG.c_str(), "advertising started!");
-}
-
-void stop_advertizing() { ble_gap_adv_stop(); }
-
-Gatt::Gatt() {
-  ble_svc_gatt_init();
-
-  if (ble_gatts_count_cfg(ble_services.data()) != 0) {
-    throw std::runtime_error("gatt service counter update failed");
-  }
-
-  if (ble_gatts_add_svcs(ble_services.data()) != 0) {
-    throw std::runtime_error("gatt service inclusion failed");
-  }
-}
-
-Ble::Ble(std::string device_name, Antenna antenna) {
+Ble::Ble(std::string _device_name, Antenna antenna) {
   choose_antenna(antenna);
   init_nvs();
   init_nimble_port();
-  gap::init(device_name);
   nimble_host_config_init();
+  gap_init(_device_name);
+  init_gatt();
 }
 
 void Ble::nimble_host_task() {
@@ -517,7 +516,7 @@ void Ble::nimble_host_task() {
 
 void Ble::advertize() {
   ESP_LOGI(TAG.c_str(), "start advertizing");
-  gap::start_advertising();
+  start_advertising();
 }
 
 void Ble::init_nvs() {
