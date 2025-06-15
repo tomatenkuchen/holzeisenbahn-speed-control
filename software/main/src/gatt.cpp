@@ -23,9 +23,10 @@ namespace {
 constexpr std::string TAG = "gatt";
 
 int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                          struct ble_gatt_access_ctxt *ctxt, void *arg);
+                          ble_gatt_access_ctxt *ctxt, void *arg);
+
 int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                   struct ble_gatt_access_ctxt *ctxt, void *arg);
+                   ble_gatt_access_ctxt *ctxt, void *arg);
 
 const ble_uuid16_t heart_rate_svc_uuid = BLE_UUID16_INIT(0x180D);
 
@@ -39,7 +40,9 @@ bool heart_rate_ind_status = false;
 
 /* Automation IO service */
 const ble_uuid16_t auto_io_svc_uuid = BLE_UUID16_INIT(0x1815);
+
 uint16_t led_chr_val_handle;
+
 const ble_uuid128_t led_chr_uuid =
     BLE_UUID128_INIT(0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef,
                      0x12, 0x12, 0x25, 0x15, 0x00, 0x00);
@@ -87,7 +90,7 @@ std::array<ble_gatt_svc_def, 3> const ble_services = {
 };
 
 int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                          struct ble_gatt_access_ctxt *ctxt, void *arg) {
+                          ble_gatt_access_ctxt *ctxt, void *arg) {
   if (ctxt->op != BLE_GATT_ACCESS_OP_READ_CHR) {
     throw std::runtime_error("gatt: bad heart rate access");
   }
@@ -114,7 +117,7 @@ int heart_rate_chr_access(uint16_t conn_handle, uint16_t attr_handle,
 }
 
 int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
-                   struct ble_gatt_access_ctxt *ctxt, void *arg) {
+                   ble_gatt_access_ctxt *ctxt, void *arg) {
   if (ctxt->op != BLE_GATT_ACCESS_OP_WRITE_CHR) {
     return BLE_ERR_UNSPECIFIED;
   }
@@ -152,14 +155,23 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle,
   return 0;
 }
 
-} // namespace
-
-void send_heart_rate_indication() {
-  if (heart_rate_ind_status && heart_rate_chr_conn_handle_inited) {
-    ble_gatts_indicate(heart_rate_chr_conn_handle, heart_rate_chr_val_handle);
-    ESP_LOGI(TAG.c_str(), "heart rate indication sent!");
+void log_event_type(ble_gap_event const *const event) {
+  if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
+    ESP_LOGI(TAG.c_str(), "subscribe event; conn_handle=%d attr_handle=%d",
+             event->subscribe.conn_handle, event->subscribe.attr_handle);
+  } else {
+    ESP_LOGI(TAG.c_str(), "subscribe by nimble stack; attr_handle=%d",
+             event->subscribe.attr_handle);
   }
 }
+
+void update_heartrate_subscription_state(ble_gap_event const *const event) {
+  heart_rate_chr_conn_handle = event->subscribe.conn_handle;
+  heart_rate_chr_conn_handle_inited = true;
+  heart_rate_ind_status = event->subscribe.cur_indicate;
+}
+
+} // namespace
 
 void Gatt::service_register_event(ble_gatt_register_ctxt *ctxt) {
   char buf[BLE_UUID_STR_LEN];
@@ -199,26 +211,22 @@ void Gatt::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
 
   default:
     throw std::runtime_error("gatt service register error");
-    return;
   }
 }
 
-void gatt_svr_subscribe_cb(ble_gap_event *event) {
-  // Check connection handle
-  if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-    ESP_LOGI(TAG.c_str(), "subscribe event; conn_handle=%d attr_handle=%d",
-             event->subscribe.conn_handle, event->subscribe.attr_handle);
-  } else {
-    ESP_LOGI(TAG.c_str(), "subscribe by nimble stack; attr_handle=%d",
-             event->subscribe.attr_handle);
+void Gatt::send_heart_rate_indication() {
+  if (heart_rate_ind_status && heart_rate_chr_conn_handle_inited) {
+    ble_gatts_indicate(heart_rate_chr_conn_handle, heart_rate_chr_val_handle);
+    ESP_LOGI(TAG.c_str(), "heart rate indication sent!");
   }
+}
+
+void Gatt::server_subscribe_callback(ble_gap_event *event) {
+  log_event_type(event);
 
   // Check attribute handle
   if (event->subscribe.attr_handle == heart_rate_chr_val_handle) {
-    // Update heart rate subscription status
-    heart_rate_chr_conn_handle = event->subscribe.conn_handle;
-    heart_rate_chr_conn_handle_inited = true;
-    heart_rate_ind_status = event->subscribe.cur_indicate;
+    update_heartrate_subscription_state(event);
   }
 }
 
