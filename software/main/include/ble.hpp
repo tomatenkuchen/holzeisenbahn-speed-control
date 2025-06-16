@@ -28,27 +28,28 @@ struct UUID128 {
 /// accomordate different types of charachteristics, custom and predefined
 using UUID = std::variant<UUID16, UUID128>;
 
+enum class Flag {
+  broadcast,
+  read,
+  write_no_response,
+  write,
+  notify,
+  indicate,
+  auth_sign_write,
+  reliable_write,
+  aux_write,
+  read_encrypted,
+  read_authenticated,
+  read_authorized,
+  write_encrypted,
+  write_authenticated,
+  write_authorized,
+};
+
 /// flags defining the type of communication that is desired with the
 /// characteristic
 template <typename Value>
 struct Characteristic {
-  enum class Flag {
-    broadcast,
-    read,
-    write_no_response,
-    write,
-    notify,
-    indicate,
-    auth_sign_write,
-    reliable_write,
-    aux_write,
-    read_encrypted,
-    read_authenticated,
-    read_authorized,
-    write_encrypted,
-    write_authenticated,
-    write_authorized,
-  };
   /// characteristic uuid
   UUID uuid;
   /// actual value

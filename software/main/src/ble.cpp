@@ -179,7 +179,7 @@ Ble::Ble(std::string _device_name, Antenna antenna) {
   init_gatt();
 }
 
-void Ble::service_register_event(ble_gatt_register_ctxt *ctxt) {
+void Ble::service_register_event(ble_gatt_register_ctxt const *const ctxt) {
   char buf[BLE_UUID_STR_LEN];
   ESP_LOGD(TAG.c_str(), "registered service %s with handle=%d",
            ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
