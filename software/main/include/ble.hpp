@@ -2,14 +2,15 @@
 /// @brief bluetooth low energy class
 /// @copyright GPL v2.0
 
+#include <array>
+#include <string>
+#include <variant>
+
 #include "hal/gpio_types.h"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
 #include "host/ble_uuid.h"
 #include "services/gatt/ble_svc_gatt.h"
-#include <array>
-#include <string>
-#include <variant>
 
 namespace ble {
 
@@ -29,7 +30,8 @@ using UUID = std::variant<UUID16, UUID128>;
 
 /// flags defining the type of communication that is desired with the
 /// characteristic
-template <typename Value> struct Characteristic {
+template <typename Value>
+struct Characteristic {
   enum class Flag {
     broadcast,
     read,
@@ -56,14 +58,15 @@ template <typename Value> struct Characteristic {
 };
 
 /// service definition
-template <typename Value, uint8_t N> struct Service {
+template <typename Value, uint8_t N>
+struct Service {
   UUID uuid;
   std::array<Characteristic<Value>, N> characteristics;
 };
 
 /// bluetooth low energy abstraction class
 class Ble {
-public:
+ public:
   /// @brief antenna output
   enum class Antenna {
     internal,
@@ -102,24 +105,105 @@ public:
   /// stop current advertizing in progress
   void stop_advertizing();
 
-private:
+ private:
   /// switch pin to switch antenna switch on or off
-  constexpr static inline gpio_num_t rf_switch_gpio =
-      static_cast<gpio_num_t>(3);
+  constexpr static inline gpio_num_t rf_switch_gpio = static_cast<gpio_num_t>(3);
   /// switch to select antenna
-  constexpr static inline gpio_num_t antenna_switch_gpio =
-      static_cast<gpio_num_t>(14);
+  constexpr static inline gpio_num_t antenna_switch_gpio = static_cast<gpio_num_t>(14);
+
+  constexpr static inline std::string_view esp_uri = "\x17//espressif.com";
+  uint8_t own_addr_type;
+  uint8_t addr_val[6] = {0};
+  std::string device_name;
+
+  ble_hs_adv_fields adv_fields = {
+      .flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP,
+
+      // Set device tx power
+      .tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO,
+      .tx_pwr_lvl_is_present = 1,
+
+      // Set device appearance
+      .appearance = 0x0200,
+      .appearance_is_present = 1,
+
+      // Set device LE role
+      .le_role = 0,
+      .le_role_is_present = 1,
+  };
+
+  ble_hs_adv_fields rsp_fields = {
+      .adv_itvl = BLE_GAP_ADV_ITVL_MS(500),
+      .adv_itvl_is_present = 1,
+
+      .device_addr = addr_val,
+      .device_addr_type = own_addr_type,
+      .device_addr_is_present = 1,
+
+      .uri = reinterpret_cast<uint8_t const *>(esp_uri.data()),
+      .uri_len = static_cast<uint8_t>(esp_uri.size()),
+  };
+
+  ble_gap_adv_params adv_params = {
+      .conn_mode = BLE_GAP_CONN_MODE_UND,
+      .disc_mode = BLE_GAP_DISC_MODE_GEN,
+
+      // Set advertising interval
+      .itvl_min = BLE_GAP_ADV_ITVL_MS(500),
+      .itvl_max = BLE_GAP_ADV_ITVL_MS(510),
+  };
 
   void init_nvs();
+
   void init_gap(std::string _device_name);
-  void init_gatt();
+
   void init_nimble_port();
+
   void nimble_host_config_init();
+
   void choose_antenna(Antenna antenna);
-  void mtu_event(ble_gap_event *event);
-  int event_handler(ble_gap_event *event, void *args);
-  void service_register_event(ble_gatt_register_ctxt *ctxt);
+
+  /// gets called when a service is registered
+  void service_register_event(ble_gatt_register_ctxt const *const ctxt);
+
   void characteristic_register_event(ble_gatt_register_ctxt *ctxt);
+
   void descriptor_register_event(ble_gatt_register_ctxt *ctxt);
-};
-} // namespace ble
+
+  /// print address
+  void format_addr(char *addr_str, uint8_t addr[]);
+
+  /// print connection description
+  void print_conn_desc(ble_gap_conn_desc *desc);
+
+  /// handle connect event
+  int connect_event(ble_gap_event *event);
+
+  /// handle disconnect event
+  void disconnect_event(ble_gap_event *event);
+
+  ///
+  void update_event(ble_gap_event *event);
+
+  ///
+  void advertizing_complete_event(ble_gap_event *event);
+
+  ///
+  void notify_event(ble_gap_event *event);
+
+  void Ble::subscribe_event(ble_gap_event *event);
+
+  void Ble::mtu_event(ble_gap_event *event);
+
+  /// callback routine for gap event servicing
+  /// @param event type of event that occured
+  /// @param args additional info besides event data. not used by any callback but
+  /// required by callback type
+  int Ble::event_handler(ble_gap_event *event, void *args);
+
+  ///
+  void init_gatt();
+
+  ///
+  void init_gap(std::string _device_name);
+}  // namespace ble
