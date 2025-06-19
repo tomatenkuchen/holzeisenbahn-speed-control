@@ -86,7 +86,7 @@ class Ble {
 
   /// gets called when a client subscribes to a characteristic
   /// @param event carries event meta data to process
-  void server_subscribe_callback(ble_gap_event *event);
+  void service_subscribe_callback(ble_gap_event *event);
 
   /// update indication flag for heart rate characteristic
   void send_heart_rate_indication();
@@ -101,7 +101,7 @@ class Ble {
   int event_handler(ble_gap_event *event);
 
   /// start advertizing on demand. stops when connection is established
-  void start_advertising();
+  void start_advertising(ble_gap_event_fn event_callback);
 
   /// stop current advertizing in progress
   void stop_advertizing();
@@ -192,19 +192,21 @@ class Ble {
   ///
   void notify_event(ble_gap_event *event);
 
-  void Ble::subscribe_event(ble_gap_event *event);
+  void subscribe_event(ble_gap_event *event);
 
-  void Ble::mtu_event(ble_gap_event *event);
+  void mtu_event(ble_gap_event *event);
 
   /// callback routine for gap event servicing
   /// @param event type of event that occured
   /// @param args additional info besides event data. not used by any callback but
   /// required by callback type
-  int Ble::event_handler(ble_gap_event *event, void *args);
+  int event_handler(ble_gap_event *event, void *args);
 
   ///
   void init_gatt();
 
   ///
   void init_gap(std::string _device_name);
+};
+
 }  // namespace ble

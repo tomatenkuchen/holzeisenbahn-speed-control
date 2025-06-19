@@ -53,7 +53,8 @@ void add_callbacks() {
 
 extern "C" void app_main() {
   try {
-    led::init();
+    constexpr gpio_num_t led_gpio = static_cast<gpio_num_t>(15);
+    led::Led Led(led_gpio);
 
     add_callbacks();
 

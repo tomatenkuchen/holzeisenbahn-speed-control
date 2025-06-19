@@ -125,13 +125,6 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_c
     return BLE_ERR_UNSPECIFIED;
   }
 
-  if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-    ESP_LOGI(TAG.c_str(), "characteristic write; conn_handle=%d attr_handle=%d", conn_handle,
-             attr_handle);
-  } else {
-    ESP_LOGI(TAG.c_str(), "characteristic write by nimble stack; attr_handle=%d", attr_handle);
-  }
-
   // Verify attribute handle
   if (attr_handle != led_chr_val_handle) {
     throw std::runtime_error("unexpected access operation on led characteristic");
@@ -144,24 +137,12 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_c
 
   /* Turn the LED on or off according to the operation bit */
   if (ctxt->om->om_data[0]) {
-    led::on();
-    ESP_LOGI(TAG.c_str(), "led turned on!");
+    led.on();
   } else {
-    led::off();
-    ESP_LOGI(TAG.c_str(), "led turned off!");
+    led.off();
   }
 
   return 0;
-}
-
-void log_event_type(ble_gap_event const *const event) {
-  if (event->subscribe.conn_handle != BLE_HS_CONN_HANDLE_NONE) {
-    ESP_LOGI(TAG.c_str(), "subscribe event; conn_handle=%d attr_handle=%d",
-             event->subscribe.conn_handle, event->subscribe.attr_handle);
-  } else {
-    ESP_LOGI(TAG.c_str(), "subscribe by nimble stack; attr_handle=%d",
-             event->subscribe.attr_handle);
-  }
 }
 
 void update_heartrate_subscription_state(ble_gap_event const *const event) {
@@ -175,48 +156,8 @@ Ble::Ble(std::string _device_name, Antenna antenna) {
   init_nvs();
   init_nimble_port();
   nimble_host_config_init();
-  gap_init(_device_name);
+  init_gap(_device_name);
   init_gatt();
-}
-
-void Ble::service_register_event(ble_gatt_register_ctxt const *const ctxt) {
-  char buf[BLE_UUID_STR_LEN];
-  ESP_LOGD(TAG.c_str(), "registered service %s with handle=%d",
-           ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
-}
-
-void Ble::characteristic_register_event(ble_gatt_register_ctxt *ctxt) {
-  char buf[BLE_UUID_STR_LEN];
-  ESP_LOGD(TAG.c_str(),
-           "registering characteristic %s with "
-           "def_handle=%d val_handle=%d",
-           ble_uuid_to_str(ctxt->chr.chr_def->uuid, buf), ctxt->chr.def_handle,
-           ctxt->chr.val_handle);
-}
-
-void Ble::descriptor_register_event(ble_gatt_register_ctxt *ctxt) {
-  char buf[BLE_UUID_STR_LEN];
-  ESP_LOGD(TAG.c_str(), "registering descriptor %s with handle=%d",
-           ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf), ctxt->dsc.handle);
-}
-
-void Ble::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
-  switch (ctxt->op) {
-    case BLE_GATT_REGISTER_OP_SVC:
-      service_register_event(ctxt);
-      return;
-
-    case BLE_GATT_REGISTER_OP_CHR:
-      characteristic_register_event(ctxt);
-      return;
-
-    case BLE_GATT_REGISTER_OP_DSC:
-      descriptor_register_event(ctxt);
-      return;
-
-    default:
-      throw std::runtime_error("gatt service register error");
-  }
 }
 
 void Ble::send_heart_rate_indication() {
@@ -226,9 +167,7 @@ void Ble::send_heart_rate_indication() {
   }
 }
 
-void Ble::server_subscribe_callback(ble_gap_event *event) {
-  log_event_type(event);
-
+void Ble::service_subscribe_callback(ble_gap_event *event) {
   // Check attribute handle
   if (event->subscribe.attr_handle == heart_rate_chr_val_handle) {
     update_heartrate_subscription_state(event);
@@ -238,24 +177,6 @@ void Ble::server_subscribe_callback(ble_gap_event *event) {
 void Ble::format_addr(char *addr_str, uint8_t addr[]) {
   sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2], addr[3], addr[4],
           addr[5]);
-}
-
-void Ble::print_conn_desc(ble_gap_conn_desc *desc) {
-  char addr_str[18] = {0};
-
-  ESP_LOGI(TAG.c_str(), "connection handle: %d", desc->conn_handle);
-
-  format_addr(addr_str, desc->our_id_addr.val);
-  ESP_LOGI(TAG.c_str(), "device id address: type=%d, value=%s", desc->our_id_addr.type, addr_str);
-
-  format_addr(addr_str, desc->peer_id_addr.val);
-  ESP_LOGI(TAG.c_str(), "peer id address: type=%d, value=%s", desc->peer_id_addr.type, addr_str);
-
-  ESP_LOGI(TAG.c_str(),
-           "conn_itvl=%d, conn_latency=%d, supervision_timeout=%d, "
-           "encrypted=%d, authenticated=%d, bonded=%d\n",
-           desc->conn_itvl, desc->conn_latency, desc->supervision_timeout,
-           desc->sec_state.encrypted, desc->sec_state.authenticated, desc->sec_state.bonded);
 }
 
 int Ble::connect_event(ble_gap_event *event) {
@@ -275,9 +196,6 @@ int Ble::connect_event(ble_gap_event *event) {
     throw std::runtime_error("failed to find connection by handle");
   }
 
-  // Print connection descriptor
-  print_conn_desc(&desc);
-
   // Try to update connection parameters
   ble_gap_upd_params params = {
       .itvl_min = desc.conn_itvl,
@@ -293,62 +211,11 @@ int Ble::connect_event(ble_gap_event *event) {
   return 0;
 }
 
-void Ble::disconnect_event(ble_gap_event *event) {
-  // A connection was terminated, print connection descriptor
-  ESP_LOGI(TAG.c_str(), "disconnected from peer; reason=%d", event->disconnect.reason);
+void Ble::disconnect_event(ble_gap_event *event) { start_advertising(); }
 
-  // Restart advertising
-  start_advertising();
-}
+void Ble::advertizing_complete_event(ble_gap_event *event) { start_advertising(); }
 
-void Ble::update_event(ble_gap_event *event) {
-  // The central has updated the connection parameters
-  ESP_LOGI(TAG.c_str(), "connection updated; status=%d", event->conn_update.status);
-
-  // Print connection descriptor
-  ble_gap_conn_desc desc;
-  if (ble_gap_conn_find(event->conn_update.conn_handle, &desc) != 0) {
-    throw std::runtime_error("failed to find connection by handle");
-  }
-
-  print_conn_desc(&desc);
-}
-
-void Ble::advertizing_complete_event(ble_gap_event *event) {
-  // Advertising completed, restart advertising
-  ESP_LOGI(TAG.c_str(), "advertise complete; reason=%d", event->adv_complete.reason);
-  start_advertising();
-}
-
-void Ble::notify_event(ble_gap_event *event) {
-  if ((event->notify_tx.status != 0) && (event->notify_tx.status != BLE_HS_EDONE)) {
-    // Print notification info on error
-    ESP_LOGI(TAG.c_str(),
-             "notify event; conn_handle=%d attr_handle=%d "
-             "status=%d is_indication=%d",
-             event->notify_tx.conn_handle, event->notify_tx.attr_handle, event->notify_tx.status,
-             event->notify_tx.indication);
-  }
-}
-
-void Ble::subscribe_event(ble_gap_event *event) {
-  // Print subscription info to log
-  ESP_LOGI(TAG.c_str(),
-           "subscribe event; conn_handle=%d attr_handle=%d "
-           "reason=%d prevn=%d curn=%d previ=%d curi=%d",
-           event->subscribe.conn_handle, event->subscribe.attr_handle, event->subscribe.reason,
-           event->subscribe.prev_notify, event->subscribe.cur_notify,
-           event->subscribe.prev_indicate, event->subscribe.cur_indicate);
-
-  // GATT subscribe event callback
-  gatt.service_subscribe_callback(event);
-}
-
-void Ble::mtu_event(ble_gap_event *event) {
-  // Print MTU update info to log
-  ESP_LOGI(TAG.c_str(), "mtu update event; conn_handle=%d cid=%d mtu=%d", event->mtu.conn_handle,
-           event->mtu.channel_id, event->mtu.value);
-}
+void Ble::subscribe_event(ble_gap_event *event) { service_subscribe_callback(event); }
 
 /// callback routine for gap event servicing
 /// @param event type of event that occured
@@ -363,27 +230,18 @@ int Ble::event_handler(ble_gap_event *event, void *args) {
     case BLE_GAP_EVENT_DISCONNECT:
       disconnect_event(event);
       return 0;
-    case BLE_GAP_EVENT_CONN_UPDATE:
-      update_event(event);
-      return 0;
     case BLE_GAP_EVENT_ADV_COMPLETE:
       advertizing_complete_event(event);
       return 0;
-    case BLE_GAP_EVENT_NOTIFY_TX:
-      notify_event(event);
-      return 0;
     case BLE_GAP_EVENT_SUBSCRIBE:
       subscribe_event(event);
-      return 0;
-    case BLE_GAP_EVENT_MTU:
-      mtu_event(event);
       return 0;
   }
 
   return 0;
 }
 
-void Ble::start_advertising() {
+void Ble::start_advertising(ble_gap_event_fn event_callback) {
   if (ble_gap_adv_set_fields(&adv_fields) != 0) {
     throw std::runtime_error("failed to set advertising data");
   }
@@ -393,7 +251,7 @@ void Ble::start_advertising() {
   }
 
   // Start advertising
-  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, event_handler, NULL) !=
+  if (ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER, &adv_params, event_callback, NULL) !=
       0) {
     throw std::runtime_error("failed to start advertising");
   }
@@ -437,10 +295,6 @@ void Ble::init_gap(std::string _device_name) {
   if (ble_hs_id_copy_addr(own_addr_type, addr_val, NULL) != 0) {
     throw std::runtime_error("failed to copy device address");
   }
-
-  char addr_str[18] = {0};
-  format_addr(addr_str, addr_val);
-  ESP_LOGI(TAG.c_str(), "device address: %s", addr_str);
 }
 
 void Ble::nimble_host_task() {
