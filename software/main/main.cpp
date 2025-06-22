@@ -97,14 +97,6 @@ int event_handler(ble_gap_event *event, void *args) {
   return 0;
 }
 
-void ble_nimble_task(void *param) {
-  ble::Ble ble("henri-lok", event_handler, ble_services.data(), ble::Ble::Antenna::external);
-  ble_ptr = &ble;
-
-  ble.nimble_host_task();
-  vTaskDelete(NULL);
-}
-
 void on_stack_reset(int reason) { ESP_LOGI("main", "ble stack reset"); }
 
 void on_stack_sync() { ble_ptr->start_advertising(); }
@@ -122,6 +114,16 @@ void add_callbacks() {
   ble_store_config_init();
 }
 
+void ble_nimble_task(void *param) {
+  ble::Ble ble("henri-lok", event_handler, ble_services.data(), ble::Ble::Antenna::external);
+  ble_ptr = &ble;
+
+  add_callbacks();
+
+  ble.nimble_host_task();
+  vTaskDelete(NULL);
+}
+
 }  // namespace
 
 extern "C" void app_main() {
@@ -130,10 +132,8 @@ extern "C" void app_main() {
     led::Led Led(led_gpio);
     led_ptr = &Led;
 
-    add_callbacks();
-
-    xTaskCreate(ble_nimble_task, "NimBLE Host", 4 * 1024, NULL, 5, NULL);
-//    xTaskCreate(speed_control_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
+    xTaskCreate(ble_nimble_task, "NimBLE Host", 8 * 1024, NULL, 5, NULL);
+    //    xTaskCreate(speed_control_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();
     ESP_LOGE("main", "error: %s", err_msg.c_str());

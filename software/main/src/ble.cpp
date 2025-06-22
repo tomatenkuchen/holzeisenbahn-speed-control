@@ -135,6 +135,10 @@ void Ble::init_gap(std::string _device_name) {
 
   ble_svc_gap_init();
 
+  if (ble_svc_gap_device_name_set(_device_name.c_str()) != 0) {
+    throw std::runtime_error("gap device name could not be set");
+  }
+
   // Make sure we have proper BT identity address set (random preferred)
   if (ble_hs_util_ensure_addr(0) != 0) {
     throw std::runtime_error("device does not have any available bt address!");
