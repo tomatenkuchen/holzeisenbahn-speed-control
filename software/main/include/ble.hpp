@@ -14,7 +14,6 @@
 
 namespace ble {
 
-void nimble_host_config_init();
 /// uuid for predfined characteristic
 struct UUID16 {
   uint16_t uuid;
