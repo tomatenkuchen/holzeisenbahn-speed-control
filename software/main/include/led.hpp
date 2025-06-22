@@ -15,6 +15,6 @@ class Led {
 
  private:
   gpio_num_t pin;
-}
+};
 
 }  // namespace led

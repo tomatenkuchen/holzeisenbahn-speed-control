@@ -76,32 +76,24 @@ class Ble {
 
   /// @brief constructor
   /// @param device_name advertizing name of device
+  /// @param _external_event_handler event handler for gap. needs to be staticall defined. use ble's
+  /// @param services services proveded by ble
   /// @param antenna choose which antenna to use
-  Ble(std::string _device_name, Antenna antenna = Antenna::internal);
-
-  /// Handle GATT attributes register events
-  /// @param ctxt state structure for callback meta data
-  /// @param arg additional arguments if given
-  void service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg);
+  Ble(std::string _device_name, ble_gap_event_fn *_external_event_handler,
+      ble_gatt_svc_def *services, Antenna antenna = Antenna::internal);
 
   /// gets called when a client subscribes to a characteristic
   /// @param event carries event meta data to process
   void service_subscribe_callback(ble_gap_event *event);
 
-  /// update indication flag for heart rate characteristic
-  void send_heart_rate_indication();
-
   /// @brief nimble base task
   void nimble_host_task();
 
-  /// @brief control advertizing
-  void advertize();
-
   /// @brief handles gap events
-  int event_handler(ble_gap_event *event);
+  void event_handler(ble_gap_event *event);
 
   /// start advertizing on demand. stops when connection is established
-  void start_advertising(ble_gap_event_fn event_callback);
+  void start_advertising();
 
   /// stop current advertizing in progress
   void stop_advertizing();
@@ -113,9 +105,10 @@ class Ble {
   constexpr static inline gpio_num_t antenna_switch_gpio = static_cast<gpio_num_t>(14);
 
   constexpr static inline std::string_view esp_uri = "\x17//espressif.com";
-  uint8_t own_addr_type;
+  uint8_t own_addr_type = 0;
   uint8_t addr_val[6] = {0};
   std::string device_name;
+  ble_gap_event_fn *external_event_handler;
 
   ble_hs_adv_fields adv_fields = {
       .flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP,
@@ -157,6 +150,9 @@ class Ble {
   void init_nvs();
 
   void init_gap(std::string _device_name);
+
+  ///
+  void init_gatt(ble_gatt_svc_def *service);
 
   void init_nimble_port();
 
@@ -201,12 +197,6 @@ class Ble {
   /// @param args additional info besides event data. not used by any callback but
   /// required by callback type
   int event_handler(ble_gap_event *event, void *args);
-
-  ///
-  void init_gatt();
-
-  ///
-  void init_gap(std::string _device_name);
 };
 
 }  // namespace ble
