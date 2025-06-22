@@ -184,7 +184,7 @@ void on_stack_reset(int reason) { ESP_LOGI("main", "ble stack reset"); }
 void on_stack_sync() { ble_ptr->start_advertising(); }
 
 void service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
-  ble_ptr->service_register_callback(ctxt, arg);
+  ESP_LOGI(TAG.c_str(), "gatt service register callback called");
 }
 
 void add_callbacks() {

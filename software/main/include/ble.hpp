@@ -14,6 +14,7 @@
 
 namespace ble {
 
+void nimble_host_config_init();
 /// uuid for predfined characteristic
 struct UUID16 {
   uint16_t uuid;
@@ -156,12 +157,7 @@ class Ble {
 
   void init_nimble_port();
 
-  void nimble_host_config_init();
-
   void choose_antenna(Antenna antenna);
-
-  /// gets called when a service is registered
-  void service_register_event(ble_gatt_register_ctxt const *const ctxt);
 
   void characteristic_register_event(ble_gatt_register_ctxt *ctxt);
 

@@ -34,7 +34,6 @@ Ble::Ble(std::string _device_name, ble_gap_event_fn *_external_event_handler,
   choose_antenna(antenna);
   init_nvs();
   init_nimble_port();
-  nimble_host_config_init();
   init_gap(_device_name);
   init_gatt(services);
 }
@@ -124,40 +123,6 @@ void Ble::init_gatt(ble_gatt_svc_def *services) {
 
   if (ble_gatts_add_svcs(services) != 0) {
     throw std::runtime_error("gatt service inclusion failed");
-  }
-}
-
-void Ble::service_register_callback(ble_gatt_register_ctxt *ctxt, void *arg) {
-  /* Local variables */
-  char buf[BLE_UUID_STR_LEN];
-
-  /* Handle GATT attributes register events */
-  switch (ctxt->op) {
-    /* Service register event */
-    case BLE_GATT_REGISTER_OP_SVC:
-      ESP_LOGD(TAG, "registered service %s with handle=%d",
-               ble_uuid_to_str(ctxt->svc.svc_def->uuid, buf), ctxt->svc.handle);
-      break;
-
-    /* Characteristic register event */
-    case BLE_GATT_REGISTER_OP_CHR:
-      ESP_LOGD(TAG,
-               "registering characteristic %s with "
-               "def_handle=%d val_handle=%d",
-               ble_uuid_to_str(ctxt->chr.chr_def->uuid, buf), ctxt->chr.def_handle,
-               ctxt->chr.val_handle);
-      break;
-
-    /* Descriptor register event */
-    case BLE_GATT_REGISTER_OP_DSC:
-      ESP_LOGD(TAG, "registering descriptor %s with handle=%d",
-               ble_uuid_to_str(ctxt->dsc.dsc_def->uuid, buf), ctxt->dsc.handle);
-      break;
-
-    /* Unknown event */
-    default:
-      assert(0);
-      break;
   }
 }
 

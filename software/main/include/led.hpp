@@ -9,7 +9,6 @@ namespace led {
 class Led {
  public:
   Led(gpio_num_t pin_no);
-  ~Led();
   void on();
   void off();
 
