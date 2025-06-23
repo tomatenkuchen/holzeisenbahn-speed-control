@@ -132,8 +132,17 @@ extern "C" void app_main() {
     led::Led Led(led_gpio);
     led_ptr = &Led;
 
-    xTaskCreate(ble_nimble_task, "NimBLE Host", 8 * 1024, NULL, 5, NULL);
-    //    xTaskCreate(speed_control_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
+    // xTaskCreate(ble_nimble_task, "NimBLE Host", 8 * 1024, NULL, 5, NULL);
+    // xTaskCreate(speed_control_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
+
+    while (true) {
+      Led.on();
+      ESP_LOGI("main", "led on");
+      vTaskDelay(100);
+      Led.off();
+      ESP_LOGI("main", "led off");
+      vTaskDelay(100);
+    }
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();
     ESP_LOGE("main", "error: %s", err_msg.c_str());

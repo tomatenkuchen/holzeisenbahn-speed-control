@@ -16,6 +16,7 @@
 #include "host/util/util.h"
 #include "led.hpp"
 #include "nimble/ble.h"
+#include "nimble/esp_nimble_hci.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "nvs_flash.h"
@@ -33,10 +34,13 @@ Ble::Ble(std::string _device_name, ble_gap_event_fn *_external_event_handler,
     : external_event_handler{_external_event_handler} {
   choose_antenna(antenna);
   init_nvs();
+  init_nimble_hci();
   init_nimble_port();
   init_gap(_device_name);
   init_gatt(services);
 }
+
+Ble::~Ble() { esp_nimble_hci_and_controller_deinit(); }
 
 void Ble::format_addr(char *addr_str, uint8_t addr[]) {
   sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2], addr[3], addr[4],
@@ -113,6 +117,12 @@ void Ble::start_advertising() {
 }
 
 void Ble::stop_advertizing() { ble_gap_adv_stop(); }
+
+void Ble::init_nimble_hci() {
+  if (esp_nimble_hci_and_controller_init() != ESP_OK) {
+    throw std::runtime_error("failed to synchronise controller and nimble host");
+  }
+}
 
 void Ble::init_gatt(ble_gatt_svc_def *services) {
   ble_svc_gatt_init();

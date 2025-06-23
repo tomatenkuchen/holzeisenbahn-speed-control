@@ -82,6 +82,8 @@ class Ble {
   Ble(std::string _device_name, ble_gap_event_fn *_external_event_handler,
       ble_gatt_svc_def *services, Antenna antenna = Antenna::internal);
 
+  ~Ble();
+
   /// gets called when a client subscribes to a characteristic
   /// @param event carries event meta data to process
   void service_subscribe_callback(ble_gap_event *event);
@@ -151,7 +153,8 @@ class Ble {
 
   void init_gap(std::string _device_name);
 
-  ///
+  void init_nimble_hci();
+
   void init_gatt(ble_gatt_svc_def *service);
 
   void init_nimble_port();
