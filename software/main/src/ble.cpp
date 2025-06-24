@@ -12,11 +12,12 @@
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
 #include "host/ble_hs.h"
+#include "host/ble_hs_id.h"
 #include "host/ble_uuid.h"
 #include "host/util/util.h"
 #include "led.hpp"
 #include "nimble/ble.h"
-#include "nimble/esp_nimble_hci.h"
+#include "nimble/hci_common.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "nvs_flash.h"
@@ -33,14 +34,22 @@ Ble::Ble(std::string _device_name, ble_gap_event_fn *_external_event_handler,
          ble_gatt_svc_def *services, Antenna antenna)
     : external_event_handler{_external_event_handler} {
   choose_antenna(antenna);
+  ESP_LOGI("ble", "constructor: antenna chosen");
   init_nvs();
+  ESP_LOGI("ble", "constructor: nvs init ok");
   init_nimble_hci();
+  ESP_LOGI("ble", "constructor: nimble hci init ok");
   init_nimble_port();
+  ESP_LOGI("ble", "constructor: nimble port init ok");
   init_gap(_device_name);
+  ESP_LOGI("ble", "constructor: gap init ok");
   init_gatt(services);
+  ESP_LOGI("ble", "constructor: gatt init ok");
 }
 
-Ble::~Ble() { esp_nimble_hci_and_controller_deinit(); }
+Ble::~Ble() {
+  // esp_nimble_hci_and_controller_deinit();
+}
 
 void Ble::format_addr(char *addr_str, uint8_t addr[]) {
   sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2], addr[3], addr[4],
@@ -91,14 +100,37 @@ void Ble::event_handler(ble_gap_event *event) {
     // Connect event
     case BLE_GAP_EVENT_CONNECT:
       connect_event(event);
+      break;
     case BLE_GAP_EVENT_DISCONNECT:
       disconnect_event(event);
+      break;
     case BLE_GAP_EVENT_ADV_COMPLETE:
       advertizing_complete_event(event);
+      break;
   }
 }
 
 void Ble::start_advertising() {
+  ESP_LOGI("ble", "start advertizing");
+
+  if (ble_hs_util_ensure_addr(0) != 0) {
+    throw std::runtime_error("failed to ensure address");
+  }
+
+  if (ble_hs_id_infer_auto(0, &own_addr_type) != 0) {
+    throw std::runtime_error("failed to infer auto address");
+  }
+
+  uint8_t address_value[18] = {0};
+  if (ble_hs_id_copy_addr(own_addr_type, address_value, nullptr) != 0) {
+    throw std::runtime_error("failed address copy");
+  }
+
+  // print address
+  ESP_LOGI("ble", "start ad: address: %02x:%02x:%02x:%02x:%02x:%02x", address_value[0],
+           address_value[1], address_value[2], address_value[3], address_value[4],
+           address_value[5]);
+
   if (ble_gap_adv_set_fields(&adv_fields) != 0) {
     throw std::runtime_error("failed to set advertising data");
   }
@@ -119,9 +151,9 @@ void Ble::start_advertising() {
 void Ble::stop_advertizing() { ble_gap_adv_stop(); }
 
 void Ble::init_nimble_hci() {
-  if (esp_nimble_hci_and_controller_init() != ESP_OK) {
-    throw std::runtime_error("failed to synchronise controller and nimble host");
-  }
+  // if (esp_nimble_hci_and_controller_init() != ESP_OK) {
+  //   throw std::runtime_error("failed to synchronise controller and nimble host");
+  // }
 }
 
 void Ble::init_gatt(ble_gatt_svc_def *services) {
@@ -145,23 +177,13 @@ void Ble::init_gap(std::string _device_name) {
 
   ble_svc_gap_init();
 
+  ESP_LOGI("ble", "init gap: gap init ok");
+
   if (ble_svc_gap_device_name_set(_device_name.c_str()) != 0) {
     throw std::runtime_error("gap device name could not be set");
   }
 
-  // Make sure we have proper BT identity address set (random preferred)
-  if (ble_hs_util_ensure_addr(0) != 0) {
-    throw std::runtime_error("device does not have any available bt address!");
-  }
-
-  // Figure out BT address to use while advertising (no privacy for now)
-  if (ble_hs_id_infer_auto(0, &own_addr_type) != 0) {
-    throw std::runtime_error("failed to infer address type");
-  }
-
-  if (ble_hs_id_copy_addr(own_addr_type, addr_val, NULL) != 0) {
-    throw std::runtime_error("failed to copy device address");
-  }
+  ESP_LOGI("ble", "init gap: gap name set ok");
 }
 
 void Ble::nimble_host_task() {

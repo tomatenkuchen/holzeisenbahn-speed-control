@@ -3,6 +3,7 @@
 
 #include "ble.hpp"
 #include "esp_log.h"
+#include "esp_log_level.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "host/ble_store.h"
@@ -69,7 +70,7 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_c
     throw std::runtime_error("unexpected access operation on led characteristic");
   }
 
-  /* Turn the LED on or off according to the operation bit */
+  // Turn the LED on or off according to the operation bit
   if (ctxt->om->om_data[0]) {
     led_ptr->on();
   } else {
@@ -92,6 +93,7 @@ void speed_control_task(void *param) {
 /// @param args additional info besides event data. not used by any callback but
 /// required by callback type
 int event_handler(ble_gap_event *event, void *args) {
+  ESP_LOGI("main", "event callback");
   ble_ptr->event_handler(event);
 
   return 0;
@@ -118,9 +120,16 @@ void ble_nimble_task(void *param) {
   ble::Ble ble("henri-lok", event_handler, ble_services.data(), ble::Ble::Antenna::external);
   ble_ptr = &ble;
 
+  ESP_LOGI("main", "ble init complete");
+
   add_callbacks();
 
+  ESP_LOGI("main", "callbacks added");
+
   ble.nimble_host_task();
+
+  ESP_LOGE("main", "nimble host task failed");
+
   vTaskDelete(NULL);
 }
 
@@ -132,17 +141,11 @@ extern "C" void app_main() {
     led::Led Led(led_gpio);
     led_ptr = &Led;
 
-    // xTaskCreate(ble_nimble_task, "NimBLE Host", 8 * 1024, NULL, 5, NULL);
+    ESP_LOGI("main", "led init complete");
+
+    xTaskCreate(ble_nimble_task, "NimBLE Host", 8 * 1024, NULL, 5, NULL);
     // xTaskCreate(speed_control_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
 
-    while (true) {
-      Led.on();
-      ESP_LOGI("main", "led on");
-      vTaskDelay(100);
-      Led.off();
-      ESP_LOGI("main", "led off");
-      vTaskDelay(100);
-    }
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();
     ESP_LOGE("main", "error: %s", err_msg.c_str());
