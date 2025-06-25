@@ -43,7 +43,7 @@ ble_gatt_chr_def const led1_characteristic = {
 uint16_t led2_chr_val_handle;
 
 const ble_uuid128_t led2_chr_uuid = BLE_UUID128_INIT(
-    0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef, 0x12, 0x12, 0x25, 0x15, 0x00, 0x00);
+    0x24, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef, 0x12, 0x12, 0x25, 0x15, 0x00, 0x00);
 
 ble_gatt_chr_def const led2_characteristic = {
     .uuid = &led2_chr_uuid.u,
@@ -168,6 +168,12 @@ void add_callbacks() {
 }
 
 void ble_nimble_task(void *param) {
+  constexpr gpio_num_t led_gpio = static_cast<gpio_num_t>(15);
+  led::Led Led(led_gpio);
+  led_ptr = &Led;
+
+  ESP_LOGI("main", "led init complete");
+
   ble::Ble ble("henri-lok", event_handler, ble_services.data(), ble::Ble::Antenna::external);
   ble_ptr = &ble;
 
@@ -179,14 +185,8 @@ void ble_nimble_task(void *param) {
 
   ble.nimble_host_task();
 
-  ESP_LOGE("main", "nimble host task failed");
-
-  vTaskDelete(NULL);
-}
-
-void heartbeat_task(void *args) {
   while (true) {
-    ESP_LOGI("main", "heart beat");
+    ESP_LOGI("main", "ble heart beat");
     vTaskDelay(200);
   }
 }
@@ -195,17 +195,8 @@ void heartbeat_task(void *args) {
 
 extern "C" void app_main() {
   try {
-    constexpr gpio_num_t led_gpio = static_cast<gpio_num_t>(15);
-    led::Led Led(led_gpio);
-    led_ptr = &Led;
-
-    ESP_LOGI("main", "led init complete");
-
     xTaskCreate(ble_nimble_task, "ble task", 8 * 1024, NULL, 5, NULL);
     // xTaskCreate(speed_control_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
-
-    xTaskCreate(heartbeat_task, "uart heart beat", 2 * 1024, NULL, 5, NULL);
-
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();
     ESP_LOGE("main", "error: %s", err_msg.c_str());

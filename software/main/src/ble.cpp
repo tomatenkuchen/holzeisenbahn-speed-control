@@ -7,6 +7,7 @@
 #include "ble.hpp"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "esp_log_level.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "host/ble_gap.h"
@@ -88,11 +89,15 @@ int Ble::connect_event(ble_gap_event *event) {
   return 0;
 }
 
-void Ble::disconnect_event(ble_gap_event *event) { start_advertising(); }
+void Ble::disconnect_event(ble_gap_event *event) {
+  ESP_LOGI("ble", "disconnected");
+  start_advertising();
+}
 
-void Ble::advertizing_complete_event(ble_gap_event *event) { start_advertising(); }
-
-void Ble::subscribe_event(ble_gap_event *event) { service_subscribe_callback(event); }
+void Ble::advertizing_complete_event(ble_gap_event *event) {
+  ESP_LOGI("ble", "advertizing complete. restart");
+  start_advertising();
+}
 
 void Ble::event_handler(ble_gap_event *event) {
   // Handle different GAP event
@@ -106,6 +111,9 @@ void Ble::event_handler(ble_gap_event *event) {
       break;
     case BLE_GAP_EVENT_ADV_COMPLETE:
       advertizing_complete_event(event);
+      break;
+    default:
+      ESP_LOGI("ble", "gap event type %d", event->type);
       break;
   }
 }
