@@ -104,7 +104,7 @@ int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
   }
 
   // Verify attribute handle
-  if (attr_handle != led1_chr_val_handle) {
+  if (attr_handle != led2_chr_val_handle) {
     throw std::runtime_error("unexpected access operation on led characteristic");
   }
 
