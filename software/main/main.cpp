@@ -20,26 +20,41 @@ extern "C" void ble_store_config_init();
 ble::Ble *ble_ptr;
 led::Led *led_ptr;
 
-int led_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
-                   void *arg);
+int led1_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
+                    void *arg);
+int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
+                    void *arg);
 
 /* Automation IO service */
 const ble_uuid16_t auto_io_svc_uuid = BLE_UUID16_INIT(0x1815);
 
-uint16_t led_chr_val_handle;
+uint16_t led1_chr_val_handle;
 
-const ble_uuid128_t led_chr_uuid = BLE_UUID128_INIT(0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15,
-                                                    0xde, 0xef, 0x12, 0x12, 0x25, 0x15, 0x00, 0x00);
+const ble_uuid128_t led1_chr_uuid = BLE_UUID128_INIT(
+    0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef, 0x12, 0x12, 0x25, 0x15, 0x00, 0x00);
 
-ble_gatt_chr_def const led_characteristic = {
-    .uuid = &led_chr_uuid.u,
-    .access_cb = led_chr_access,
+ble_gatt_chr_def const led1_characteristic = {
+    .uuid = &led1_chr_uuid.u,
+    .access_cb = led1_chr_access,
     .flags = BLE_GATT_CHR_F_WRITE,
-    .val_handle = &led_chr_val_handle,
+    .val_handle = &led1_chr_val_handle,
 };
 
-std::array<ble_gatt_chr_def, 2> led_characteristics = {
-    led_characteristic,
+uint16_t led2_chr_val_handle;
+
+const ble_uuid128_t led2_chr_uuid = BLE_UUID128_INIT(
+    0x23, 0xd1, 0xbc, 0xea, 0x5f, 0x78, 0x23, 0x15, 0xde, 0xef, 0x12, 0x12, 0x25, 0x15, 0x00, 0x00);
+
+ble_gatt_chr_def const led2_characteristic = {
+    .uuid = &led2_chr_uuid.u,
+    .access_cb = led2_chr_access,
+    .flags = BLE_GATT_CHR_F_WRITE,
+    .val_handle = &led2_chr_val_handle,
+};
+
+std::array<ble_gatt_chr_def, 3> led_characteristics = {
+    led1_characteristic,
+    led2_characteristic,
     {0},
 };
 
@@ -54,14 +69,42 @@ std::array<ble_gatt_svc_def, 2> ble_services = {
     {0},
 };
 
-int led_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
-                   void *arg) {
+int led1_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
+                    void *arg) {
   if (ctxt->op != BLE_GATT_ACCESS_OP_WRITE_CHR) {
     return BLE_ERR_UNSPECIFIED;
   }
 
   // Verify attribute handle
-  if (attr_handle != led_chr_val_handle) {
+  if (attr_handle != led1_chr_val_handle) {
+    throw std::runtime_error("unexpected access operation on led characteristic");
+  }
+
+  // Verify access buffer length
+  if (ctxt->om->om_len != 1) {
+    throw std::runtime_error("unexpected access operation on led characteristic");
+  }
+
+  // Turn the LED on or off according to the operation bit
+  if (ctxt->om->om_data[0]) {
+    ESP_LOGI("main", "led1 turned on");
+    led_ptr->on();
+  } else {
+    ESP_LOGI("main", "led1 turned off");
+    led_ptr->off();
+  }
+
+  return 0;
+}
+
+int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
+                    void *arg) {
+  if (ctxt->op != BLE_GATT_ACCESS_OP_WRITE_CHR) {
+    return BLE_ERR_UNSPECIFIED;
+  }
+
+  // Verify attribute handle
+  if (attr_handle != led1_chr_val_handle) {
     throw std::runtime_error("unexpected access operation on led characteristic");
   }
 
@@ -74,6 +117,14 @@ int led_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_c
   if (ctxt->om->om_data[0]) {
     led_ptr->on();
   } else {
+    led_ptr->off();
+  }
+
+  if (ctxt->om->om_data[0]) {
+    ESP_LOGI("main", "led2 turned on");
+    led_ptr->on();
+  } else {
+    ESP_LOGI("main", "led2 turned off");
     led_ptr->off();
   }
 
@@ -133,6 +184,13 @@ void ble_nimble_task(void *param) {
   vTaskDelete(NULL);
 }
 
+void heartbeat_task(void *args) {
+  while (true) {
+    ESP_LOGI("main", "heart beat");
+    vTaskDelay(200);
+  }
+}
+
 }  // namespace
 
 extern "C" void app_main() {
@@ -143,11 +201,15 @@ extern "C" void app_main() {
 
     ESP_LOGI("main", "led init complete");
 
-    xTaskCreate(ble_nimble_task, "NimBLE Host", 8 * 1024, NULL, 5, NULL);
+    xTaskCreate(ble_nimble_task, "ble task", 8 * 1024, NULL, 5, NULL);
     // xTaskCreate(speed_control_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
+
+    xTaskCreate(heartbeat_task, "uart heart beat", 2 * 1024, NULL, 5, NULL);
 
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();
     ESP_LOGE("main", "error: %s", err_msg.c_str());
+  } catch (...) {
+    ESP_LOGE("main", "unknown error occured");
   }
 }
