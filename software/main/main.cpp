@@ -113,13 +113,6 @@ int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
     throw std::runtime_error("unexpected access operation on led characteristic");
   }
 
-  // Turn the LED on or off according to the operation bit
-  if (ctxt->om->om_data[0]) {
-    led_ptr->on();
-  } else {
-    led_ptr->off();
-  }
-
   if (ctxt->om->om_data[0]) {
     ESP_LOGI("main", "led2 turned on");
     led_ptr->on();
