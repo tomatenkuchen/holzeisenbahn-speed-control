@@ -28,12 +28,12 @@ constexpr ledc_timer_bit_t LEDC_DUTY_RES = LEDC_TIMER_13_BIT;
 constexpr uint32_t LEDC_FREQUENCY = 4000;
 
 // Define two RGB LEDs IOs and channels
-constexpr gpio_pin_t LEDC_RED_IO = 0;
-constexpr gpio_pin_t LEDC_GREEN_IO = 1;
-constexpr gpio_pin_t LEDC_BLUE_IO = 2;
-constexpr gpio_pin_t LEDC_GAMMA_RED_IO = 3;
-constexpr gpio_pin_t LEDC_GAMMA_GREEN_IO = 4;
-constexpr gpio_pin_t LEDC_GAMMA_BLUE_IO = 5;
+constexpr gpio_num_t LEDC_RED_IO = 0;
+constexpr gpio_num_t LEDC_GREEN_IO = 1;
+constexpr gpio_num_t LEDC_BLUE_IO = 2;
+constexpr gpio_num_t LEDC_GAMMA_RED_IO = 3;
+constexpr gpio_num_t LEDC_GAMMA_GREEN_IO = 4;
+constexpr gpio_num_t LEDC_GAMMA_BLUE_IO = 5;
 
 constexpr ledc_channel_t LEDC_CHANNEL_RED = LEDC_CHANNEL_0;
 constexpr ledc_channel_t LEDC_CHANNEL_GREEN = LEDC_CHANNEL_1;
@@ -43,11 +43,11 @@ constexpr ledc_channel_t LEDC_CHANNEL_GAMMA_GREEN = LEDC_CHANNEL_4;
 constexpr ledc_channel_t LEDC_CHANNEL_GAMMA_BLUE = LEDC_CHANNEL_5;
 
 // Structure to store R, G, B channels
-typedef struct {
-  uint32_t red_channel;
-  uint32_t green_channel;
-  uint32_t blue_channel;
-} rgb_channel_config_t;
+struct rgb_channel_config_t {
+  ledc_channel_t red_channel;
+  ledc_channel_t green_channel;
+  ledc_channel_t blue_channel;
+};
 
 static rgb_channel_config_t rgb_led_1_channels = {
     .red_channel = LEDC_CHANNEL_RED,
@@ -62,71 +62,60 @@ static rgb_channel_config_t rgb_led_2_channels = {
 };
 
 // Define some colors R, G, B channel PWM duty cycles
-#define RGB_TO_DUTY(x) (x * (1 << LEDC_DUTY_RES) / 255)
+uint8_t RGB_TO_DUTY(uint8_t rgb) { return rgb * (1 << LEDC_DUTY_RES) / 255; }
+
+namespace sample_color {
+
+struct Color {
+  uint8_t red;
+  uint8_t green;
+  uint8_t blue;
+};
+
+constexpr Color off = {.red = 0, .green = 0, .blue = 0};
+constexpr Color red = {.red = 255, .green = 0, .blue = 0};
+constexpr Color yellow = {.red = 255, .green = 255, .blue = 0};
+constexpr Color green = {.red = 0, .green = 255, .blue = 0};
+constexpr Color cyan = {.red = 0, .green = 255, .blue = 255};
+constexpr Color blue = {.red = 0, .green = 0, .blue = 255};
+constexpr Color magenta = {.red = 255, .green = 0, .blue = 255};
+constexpr Color orange = {.red = 255, .green = 128, .blue = 0};
+constexpr Color rose = {.red = 255, .green = 0, .blue = 128};
+constexpr Color purple = {.red = 178, .green = 102, .blue = 255};
+}  // namespace sample_color
 
 #define OFF_R 0
 #define OFF_G 0
 #define OFF_B 0
-
-// RED       - R: 255, G: 0  , B: 0
-//             H: 0  , S: 100, V: 100
 #define RED_R RGB_TO_DUTY(255)
 #define RED_G RGB_TO_DUTY(0)
 #define RED_B RGB_TO_DUTY(0)
-
-// YELLOW    - R: 255, G: 255, B: 0
-//             H: 60 , S: 100, V: 100
 #define YELLOW_R RGB_TO_DUTY(255)
 #define YELLOW_G RGB_TO_DUTY(255)
 #define YELLOW_B RGB_TO_DUTY(0)
-
-// GREEN    - R: 0  , G: 255, B: 0
-//            H: 120, S: 100, V: 100
 #define GREEN_R RGB_TO_DUTY(0)
 #define GREEN_G RGB_TO_DUTY(255)
 #define GREEN_B RGB_TO_DUTY(0)
-
-// CYAN      - R: 0  , G: 255, B: 255
-//             H: 180, S: 100, V: 100
 #define CYAN_R RGB_TO_DUTY(0)
 #define CYAN_G RGB_TO_DUTY(255)
 #define CYAN_B RGB_TO_DUTY(255)
-
-// BLUE     - R: 0  , G: 0   , B: 255
-//            H: 240, S: 100, V: 100
 #define BLUE_R RGB_TO_DUTY(0)
 #define BLUE_G RGB_TO_DUTY(0)
 #define BLUE_B RGB_TO_DUTY(255)
-
-// MAGENTA   - R: 255, G: 0  , B: 255
-//             H: 300, S: 100, V: 100
 #define MAGENTA_R RGB_TO_DUTY(255)
 #define MAGENTA_G RGB_TO_DUTY(0)
 #define MAGENTA_B RGB_TO_DUTY(255)
-
-// ORANGE   - R: 255, G: 128, B: 0
-//            H: 30 , S: 100, V: 100
 #define ORANGE_R RGB_TO_DUTY(255)
 #define ORANGE_G RGB_TO_DUTY(128)
 #define ORANGE_B RGB_TO_DUTY(0)
-
-// ROSE PINK - R: 255, G: 0  , B: 128
-//             H: 330, S: 100, V: 100
 #define ROSE_R RGB_TO_DUTY(255)
 #define ROSE_G RGB_TO_DUTY(0)
 #define ROSE_B RGB_TO_DUTY(128)
-
-// BLUEISH PURPLE - R: 178, G: 102, B: 255
-//                  H: 270, S: 60, V: 100
 #define BLUEISH_PURPLE_R RGB_TO_DUTY(178)
 #define BLUEISH_PURPLE_G RGB_TO_DUTY(102)
 #define BLUEISH_PURPLE_B RGB_TO_DUTY(255)
 
-#if CONFIG_GAMMA_CORRECTION_WITH_LUT
-// Brightness 0 - 100% gamma correction look up table (gamma = 2.6)
-// Y = B ^ 2.6
-// Pre-computed LUT to save some runtime computation
-static const float gamma_correction_lut[101] = {
+constexpr float gamma_correction_lut[101] = {
     0.000000, 0.000006, 0.000038, 0.000110, 0.000232, 0.000414, 0.000666, 0.000994, 0.001406,
     0.001910, 0.002512, 0.003218, 0.004035, 0.004969, 0.006025, 0.007208, 0.008525, 0.009981,
     0.011580, 0.013328, 0.015229, 0.017289, 0.019512, 0.021902, 0.024465, 0.027205, 0.030125,
@@ -141,116 +130,121 @@ static const float gamma_correction_lut[101] = {
     0.974208, 1.000000,
 };
 
-static uint32_t gamma_correction_calculator(uint32_t duty) {
+uint32_t gamma_correction_calculator_lut(uint32_t duty) {
   return gamma_correction_lut[duty * 100 / (1 << LEDC_DUTY_RES)] * (1 << LEDC_DUTY_RES);
 }
-#else  // !CONFIG_GAMMA_CORRECTION_WITH_LUT
-#define GAMMA_FACTOR (2.8)
 
-static uint32_t gamma_correction_calculator(uint32_t duty) {
+constexpr float GAMMA_FACTOR = 2.8;
+
+uint32_t gamma_correction_calculator(uint32_t duty) {
   return pow((double)duty / (1 << LEDC_DUTY_RES), GAMMA_FACTOR) * (1 << LEDC_DUTY_RES);
 }
-#endif  // CONFIG_GAMMA_CORRECTION_WITH_LUT
 
-static void rgb_set_duty_and_update(rgb_channel_config_t rgb_channels, uint32_t target_r_duty,
-                                    uint32_t target_g_duty, uint32_t target_b_duty) {
-  ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, rgb_channels.red_channel, target_r_duty));
-  ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, rgb_channels.green_channel, target_g_duty));
-  ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, rgb_channels.blue_channel, target_b_duty));
+void rgb_set_duty_and_update(rgb_channel_config_t rgb_channels, uint32_t target_r_duty,
+                             uint32_t target_g_duty, uint32_t target_b_duty) {
+  ledc_set_duty(LEDC_MODE, rgb_channels.red_channel, target_r_duty);
+  ledc_set_duty(LEDC_MODE, rgb_channels.green_channel, target_g_duty);
+  ledc_set_duty(LEDC_MODE, rgb_channels.blue_channel, target_b_duty);
 
-  ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, rgb_channels.red_channel));
-  ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, rgb_channels.green_channel));
-  ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, rgb_channels.blue_channel));
+  ledc_update_duty(LEDC_MODE, rgb_channels.red_channel);
+  ledc_update_duty(LEDC_MODE, rgb_channels.green_channel);
+  ledc_update_duty(LEDC_MODE, rgb_channels.blue_channel);
 }
 
-static void rgb_set_linear_fade(rgb_channel_config_t rgb_channels, uint32_t target_r_duty,
-                                uint32_t target_g_duty, uint32_t target_b_duty, uint32_t duration) {
-  ESP_ERROR_CHECK(
-      ledc_set_fade_with_time(LEDC_MODE, rgb_channels.red_channel, target_r_duty, duration));
-  ESP_ERROR_CHECK(
-      ledc_set_fade_with_time(LEDC_MODE, rgb_channels.green_channel, target_g_duty, duration));
-  ESP_ERROR_CHECK(
-      ledc_set_fade_with_time(LEDC_MODE, rgb_channels.blue_channel, target_b_duty, duration));
+void rgb_set_linear_fade(rgb_channel_config_t rgb_channels, uint32_t target_r_duty,
+                         uint32_t target_g_duty, uint32_t target_b_duty, uint32_t duration) {
+  ledc_set_fade_with_time(LEDC_MODE, rgb_channels.red_channel, target_r_duty, duration);
+  ledc_set_fade_with_time(LEDC_MODE, rgb_channels.green_channel, target_g_duty, duration);
+  ledc_set_fade_with_time(LEDC_MODE, rgb_channels.blue_channel, target_b_duty, duration);
 }
 
-static void rgb_set_gamma_curve_fade(rgb_channel_config_t rgb_channels, uint32_t start_r_duty,
-                                     uint32_t start_g_duty, uint32_t start_b_duty,
-                                     uint32_t target_r_duty, uint32_t target_g_duty,
-                                     uint32_t target_b_duty, uint32_t duration) {
+void rgb_set_gamma_curve_fade(rgb_channel_config_t rgb_channels, uint32_t start_r_duty,
+                              uint32_t start_g_duty, uint32_t start_b_duty, uint32_t target_r_duty,
+                              uint32_t target_g_duty, uint32_t target_b_duty, uint32_t duration) {
   const uint32_t linear_fade_segments = 12;
   uint32_t actual_fade_ranges;
   ledc_fade_param_config_t fade_params_list[SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX] = {};
 
-  ESP_ERROR_CHECK(ledc_fill_multi_fade_param_list(
-      LEDC_MODE, rgb_channels.red_channel, start_r_duty, target_r_duty, linear_fade_segments,
-      duration, gamma_correction_calculator, SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX, fade_params_list,
-      &actual_fade_ranges));
-  ESP_ERROR_CHECK(ledc_set_multi_fade(LEDC_MODE, rgb_channels.red_channel,
-                                      gamma_correction_calculator(start_r_duty), fade_params_list,
-                                      actual_fade_ranges));
+  ledc_fill_multi_fade_param_list(LEDC_MODE, rgb_channels.red_channel, start_r_duty, target_r_duty,
+                                  linear_fade_segments, duration, gamma_correction_calculator,
+                                  SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX, fade_params_list,
+                                  &actual_fade_ranges);
+  ledc_set_multi_fade(LEDC_MODE, rgb_channels.red_channel,
+                      gamma_correction_calculator(start_r_duty), fade_params_list,
+                      actual_fade_ranges);
 
-  ESP_ERROR_CHECK(ledc_fill_multi_fade_param_list(
-      LEDC_MODE, rgb_channels.green_channel, start_g_duty, target_g_duty, linear_fade_segments,
-      duration, gamma_correction_calculator, SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX, fade_params_list,
-      &actual_fade_ranges));
-  ESP_ERROR_CHECK(ledc_set_multi_fade(LEDC_MODE, rgb_channels.green_channel,
-                                      gamma_correction_calculator(start_g_duty), fade_params_list,
-                                      actual_fade_ranges));
+  ledc_fill_multi_fade_param_list(LEDC_MODE, rgb_channels.green_channel, start_g_duty,
+                                  target_g_duty, linear_fade_segments, duration,
+                                  gamma_correction_calculator, SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX,
+                                  fade_params_list, &actual_fade_ranges);
+  ledc_set_multi_fade(LEDC_MODE, rgb_channels.green_channel,
+                      gamma_correction_calculator(start_g_duty), fade_params_list,
+                      actual_fade_ranges);
 
-  ESP_ERROR_CHECK(ledc_fill_multi_fade_param_list(
-      LEDC_MODE, rgb_channels.blue_channel, start_b_duty, target_b_duty, linear_fade_segments,
-      duration, gamma_correction_calculator, SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX, fade_params_list,
-      &actual_fade_ranges));
-  ESP_ERROR_CHECK(ledc_set_multi_fade(LEDC_MODE, rgb_channels.blue_channel,
-                                      gamma_correction_calculator(start_b_duty), fade_params_list,
-                                      actual_fade_ranges));
+  ledc_fill_multi_fade_param_list(LEDC_MODE, rgb_channels.blue_channel, start_b_duty, target_b_duty,
+                                  linear_fade_segments, duration, gamma_correction_calculator,
+                                  SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX, fade_params_list,
+                                  &actual_fade_ranges);
+  ledc_set_multi_fade(LEDC_MODE, rgb_channels.blue_channel,
+                      gamma_correction_calculator(start_b_duty), fade_params_list,
+                      actual_fade_ranges);
 }
 
-static void rgb_fade_start(rgb_channel_config_t rgb_channels) {
-  ESP_ERROR_CHECK(ledc_fade_start(LEDC_MODE, rgb_channels.red_channel, LEDC_FADE_NO_WAIT));
-  ESP_ERROR_CHECK(ledc_fade_start(LEDC_MODE, rgb_channels.green_channel, LEDC_FADE_NO_WAIT));
-  ESP_ERROR_CHECK(ledc_fade_start(LEDC_MODE, rgb_channels.blue_channel, LEDC_FADE_NO_WAIT));
+void rgb_fade_start(rgb_channel_config_t rgb_channels) {
+  ledc_fade_start(LEDC_MODE, rgb_channels.red_channel, LEDC_FADE_NO_WAIT);
+  ledc_fade_start(LEDC_MODE, rgb_channels.green_channel, LEDC_FADE_NO_WAIT);
+  ledc_fade_start(LEDC_MODE, rgb_channels.blue_channel, LEDC_FADE_NO_WAIT);
 }
 
-static void example_rgb_ledc_init(void) {
+void example_rgb_ledc_init(void) {
   // Prepare and then apply the LEDC PWM timer configuration
-  ledc_timer_config_t ledc_timer = {.speed_mode = LEDC_MODE,
-                                    .timer_num = LEDC_TIMER,
-                                    .duty_resolution = LEDC_DUTY_RES,
-                                    .freq_hz = LEDC_FREQUENCY,  // Set output frequency at 4 kHz
-                                    .clk_cfg = LEDC_AUTO_CLK};
-  ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+  ledc_timer_config_t ledc_timer = {
+      .speed_mode = LEDC_MODE,
+      .duty_resolution = LEDC_DUTY_RES,
+      .timer_num = LEDC_TIMER,
+      .freq_hz = LEDC_FREQUENCY,  // Set output frequency at 4 kHz
+      .clk_cfg = LEDC_AUTO_CLK,
+  };
+
+  ledc_timer_config(&ledc_timer);
 
   // Prepare and then apply the LEDC PWM configuration to the six channels
-  ledc_channel_config_t ledc_channel = {.speed_mode = LEDC_MODE,
-                                        .timer_sel = LEDC_TIMER,
-                                        .intr_type = LEDC_INTR_DISABLE,
-                                        .duty = 0,  // Set initial duty to 0%
-                                        .hpoint = 0};
+  ledc_channel_config_t ledc_channel = {
+      .speed_mode = LEDC_MODE,
+      .intr_type = LEDC_INTR_DISABLE,
+      .timer_sel = LEDC_TIMER,
+      .duty = 0,  // Set initial duty to 0%
+      .hpoint = 0,
+  };
+
   ledc_channel.channel = LEDC_CHANNEL_RED;
   ledc_channel.gpio_num = LEDC_RED_IO;
-  ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+  ledc_channel_config(&ledc_channel);
+
   ledc_channel.channel = LEDC_CHANNEL_GREEN;
   ledc_channel.gpio_num = LEDC_GREEN_IO;
-  ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+  ledc_channel_config(&ledc_channel);
+
   ledc_channel.channel = LEDC_CHANNEL_BLUE;
   ledc_channel.gpio_num = LEDC_BLUE_IO;
-  ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+  ledc_channel_config(&ledc_channel);
+
   ledc_channel.channel = LEDC_CHANNEL_GAMMA_RED;
   ledc_channel.gpio_num = LEDC_GAMMA_RED_IO;
-  ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+  ledc_channel_config(&ledc_channel);
+
   ledc_channel.channel = LEDC_CHANNEL_GAMMA_GREEN;
   ledc_channel.gpio_num = LEDC_GAMMA_GREEN_IO;
-  ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+  ledc_channel_config(&ledc_channel);
+
   ledc_channel.channel = LEDC_CHANNEL_GAMMA_BLUE;
   ledc_channel.gpio_num = LEDC_GAMMA_BLUE_IO;
-  ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+  ledc_channel_config(&ledc_channel);
 }
 
-static void example_set_fade_and_start(uint32_t start_r_duty, uint32_t start_g_duty,
-                                       uint32_t start_b_duty, uint32_t target_r_duty,
-                                       uint32_t target_g_duty, uint32_t target_b_duty,
-                                       uint32_t duration) {
+void example_set_fade_and_start(uint32_t start_r_duty, uint32_t start_g_duty, uint32_t start_b_duty,
+                                uint32_t target_r_duty, uint32_t target_g_duty,
+                                uint32_t target_b_duty, uint32_t duration) {
   rgb_set_linear_fade(rgb_led_1_channels, target_r_duty, target_g_duty, target_b_duty, duration);
   rgb_set_gamma_curve_fade(rgb_led_2_channels, start_r_duty, start_g_duty, start_b_duty,
                            target_r_duty, target_g_duty, target_b_duty, duration);
@@ -259,7 +253,7 @@ static void example_set_fade_and_start(uint32_t start_r_duty, uint32_t start_g_d
   vTaskDelay(pdMS_TO_TICKS(duration));
 }
 
-void app_main(void) {
+void led_task() {
   example_rgb_ledc_init();
   ledc_fade_func_install(0);
 
@@ -292,7 +286,7 @@ void app_main(void) {
   vTaskDelay(pdMS_TO_TICKS(1000));
 
   // Cycle through color spectrum
-  while (1) {
+  while (true) {
     example_set_fade_and_start(RED_R, RED_G, RED_B, YELLOW_R, YELLOW_G, YELLOW_B, 3000);
     vTaskDelay(pdMS_TO_TICKS(5));
 
