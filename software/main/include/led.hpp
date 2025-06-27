@@ -33,6 +33,7 @@ constexpr Color magenta = {.red = 255, .green = 0, .blue = 255};
 constexpr Color orange = {.red = 255, .green = 128, .blue = 0};
 constexpr Color rose = {.red = 255, .green = 0, .blue = 128};
 constexpr Color purple = {.red = 178, .green = 102, .blue = 255};
+constexpr Color white = {.red = 255, .green = 255, .blue = 255};
 
 }  // namespace color
 
@@ -42,9 +43,9 @@ class Led {
   struct LedPins {
     gpio_num_t red_pin;
     ledc_channel_t red_channel;
-    gpio_num_t green;
+    gpio_num_t green_pin;
     ledc_channel_t green_channel;
-    gpio_num_t blue;
+    gpio_num_t blue_pin;
     ledc_channel_t blue_channel;
   };
 

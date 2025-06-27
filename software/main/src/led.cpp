@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 
 #include "driver/gpio.h"
@@ -84,7 +85,7 @@ void Led<num_of_rgb_leds>::led_fade(uint8_t led_index, color::Color from, color:
 }
 
 template <uint8_t num_of_rgb_leds>
-Led<num_of_rgb_leds>::Led(Config _cfg) : cfg{_cfg} {
+Led<num_of_rgb_leds>::Led(Config const& _cfg) : cfg{_cfg} {
   // Prepare and then apply the LEDC PWM timer configuration
   ledc_timer_config_t ledc_timer = {
       .speed_mode = cfg.timer_mode,
@@ -124,7 +125,7 @@ Led<num_of_rgb_leds>::Led(Config _cfg) : cfg{_cfg} {
 
 template <uint8_t num_of_rgb_leds>
 void Led<num_of_rgb_leds>::set_color(color::Color color, uint8_t led_index,
-                                     Milliseconds fade_time = 1s) {
+                                     Milliseconds fade_time) {
   led_fade(led_index, old_color, color, fade_time);
   old_color = color;
 }
