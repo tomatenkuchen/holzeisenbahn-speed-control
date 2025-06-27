@@ -21,8 +21,10 @@ uint32_t Led<num_of_rgb_leds>::RGB_TO_DUTY(uint8_t rgb) {
 
 template <uint8_t num_of_rgb_leds>
 uint32_t Led<num_of_rgb_leds>::gamma_correction_calculator(uint32_t duty) {
-  return std::pow((double)duty / (1 << cfg.timer_resolution), cfg.gamma_factor) *
-         (1 << cfg.timer_resolution);
+  uint32_t const resolution = 1 << cfg.timer_resolution;
+  float const scaled_duty = static_cast<float>(duty) / resolution;
+  uint32_t const gamma = std::pow(scaled_duty, cfg.gamma_factor);
+  return gamma * resolution;
 }
 
 template <uint8_t num_of_rgb_leds>
