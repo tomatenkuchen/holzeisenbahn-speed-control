@@ -92,10 +92,10 @@ int led1_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
   // Turn the LED on or off according to the operation bit
   if (ctxt->om->om_data[0]) {
     ESP_LOGI("main", "led1 turned on");
-    // led_ptr->set_color(led::color::red, 0, 1s);
+    led_ptr->set_color(led::color::red, 0, 1s);
   } else {
     ESP_LOGI("main", "led1 turned off");
-    // led_ptr->set_color(led::color::off, 0, 1s);
+    led_ptr->set_color(led::color::off, 0, 1s);
   }
 
   return 0;
@@ -120,10 +120,10 @@ int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
   // Turn the LED on or off according to the operation bit
   if (ctxt->om->om_data[0]) {
     ESP_LOGI("main", "led2 turned on");
-    // led_ptr->set_color(led::color::white, 1, 1s);
+    led_ptr->set_color(led::color::white, 1, 1s);
   } else {
     ESP_LOGI("main", "led2 turned off");
-    // led_ptr->set_color(led::color::off, 1, 1s);
+    led_ptr->set_color(led::color::off, 1, 1s);
   }
 
   return 0;
@@ -189,7 +189,6 @@ void ble_nimble_task(void *param) {
                   },
               },
           },
-      .gamma_factor = 2.8,
       .timer = LEDC_TIMER_0,
       .timer_mode = LEDC_LOW_SPEED_MODE,
       .timer_resolution = LEDC_TIMER_13_BIT,

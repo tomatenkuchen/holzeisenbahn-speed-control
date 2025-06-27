@@ -60,7 +60,6 @@ class Led {
 
   struct Config {
     std::array<LedPins, num_of_rgb_leds> pins;
-    float gamma_factor;
     ledc_timer_t timer;
     ledc_mode_t timer_mode;
     ledc_timer_bit_t timer_resolution;
@@ -72,104 +71,58 @@ class Led {
   void set_color(color::Color color, uint8_t led_index, Milliseconds fade_time = 1s);
 
  private:
-  uint32_t RGB_TO_DUTY(uint8_t rgb);
-
   struct Duty {
     uint32_t red;
     uint32_t green;
     uint32_t blue;
-
-    Duty() = default;
-
-    Duty(color::Color c)
-        : red{RGB_TO_DUTY(c.red)}, green{RGB_TO_DUTY(c.green)}, blue{RGB_TO_DUTY(c.blue)} {}
   };
+
+  Duty convert_color_to_duty(color::Color const& color);
 
   Config cfg;
 
-  color::Color old_color = color::off;
+  void led_fade(uint8_t led_index, color::Color to, Milliseconds duration);
 
-  void led_fade(uint8_t led_index, color::Color from, color::Color to, Milliseconds duration);
+  void config_fade(uint8_t index, Duty to, Milliseconds duration);
 
-  void rgb_set_gamma_curve_fade(uint8_t index, Duty from, Duty to, Milliseconds duration);
-
-  void rgb_set_linear_fade(uint8_t led_index, Duty target, Milliseconds duration);
-
-  void rgb_fade_start(uint8_t index);
-
-  uint32_t gamma_correction_calculator(uint32_t duty);
+  void fade_start(uint8_t index);
 };
 
 // Define some colors R, G, B channel PWM duty cycles
 template <uint8_t num_of_rgb_leds>
-uint32_t Led<num_of_rgb_leds>::RGB_TO_DUTY(uint8_t rgb) {
-  return rgb * (1 << cfg.timer_resolution) / 255;
-}
 
-template <uint8_t num_of_rgb_leds>
-uint32_t Led<num_of_rgb_leds>::gamma_correction_calculator(uint32_t duty) {
+Led<num_of_rgb_leds>::Duty Led<num_of_rgb_leds>::convert_color_to_duty(color::Color const& color) {
   uint32_t const resolution = 1 << cfg.timer_resolution;
-  float const scaled_duty = static_cast<float>(duty) / resolution;
-  uint32_t const gamma = std::pow(scaled_duty, cfg.gamma_factor);
-  return gamma * resolution;
+  Duty const d = {
+      .red = color.red * resolution / 256,
+      .green = color.green * resolution / 256,
+      .blue = color.blue * resolution / 256,
+  };
+  return d;
 }
 
 template <uint8_t num_of_rgb_leds>
-void Led<num_of_rgb_leds>::rgb_fade_start(uint8_t index) {
+void Led<num_of_rgb_leds>::fade_start(uint8_t index) {
   ledc_fade_start(cfg.timer_mode, cfg.pins.at(index).red_channel, LEDC_FADE_NO_WAIT);
   ledc_fade_start(cfg.timer_mode, cfg.pins.at(index).green_channel, LEDC_FADE_NO_WAIT);
   ledc_fade_start(cfg.timer_mode, cfg.pins.at(index).blue_channel, LEDC_FADE_NO_WAIT);
 }
 
 template <uint8_t num_of_rgb_leds>
-void Led<num_of_rgb_leds>::rgb_set_linear_fade(uint8_t led_index, Duty target,
-                                               Milliseconds duration) {
-  ledc_set_fade_with_time(cfg.timer_mode, cfg.pins.at(led_index).red_channel, target.red,
+void Led<num_of_rgb_leds>::config_fade(uint8_t index, Duty to, Milliseconds duration) {
+  ledc_set_fade_with_time(cfg.timer_mode, cfg.pins.at(index).red_channel, to.red, duration.count());
+  ledc_set_fade_with_time(cfg.timer_mode, cfg.pins.at(index).green_channel, to.green,
                           duration.count());
-  ledc_set_fade_with_time(cfg.timer_mode, cfg.pins.at(led_index).green_channel, target.green,
-                          duration.count());
-  ledc_set_fade_with_time(cfg.timer_mode, cfg.pins.at(led_index).blue_channel, target.blue,
+  ledc_set_fade_with_time(cfg.timer_mode, cfg.pins.at(index).blue_channel, to.blue,
                           duration.count());
 }
 
 template <uint8_t num_of_rgb_leds>
-void Led<num_of_rgb_leds>::rgb_set_gamma_curve_fade(uint8_t index, Duty from, Duty to,
-                                                    Milliseconds duration) {
-  const uint32_t linear_fade_segments = 12;
-  uint32_t actual_fade_ranges;
-  ledc_fade_param_config_t fade_params_list[SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX] = {};
+void Led<num_of_rgb_leds>::led_fade(uint8_t led_index, color::Color to, Milliseconds duration) {
+  auto const duty_to = convert_color_to_duty(to);
 
-  ledc_fill_multi_fade_param_list(cfg.timer_mode, cfg.pins.at(index).red_channel, from.red, to.red,
-                                  linear_fade_segments, duration.count(),
-                                  gamma_correction_calculator, SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX,
-                                  fade_params_list, &actual_fade_ranges);
-  ledc_set_multi_fade(cfg.timer_mode, cfg.pins.at(index).red_channel,
-                      gamma_correction_calculator(from.red), fade_params_list, actual_fade_ranges);
-
-  ledc_fill_multi_fade_param_list(cfg.timer_mode, cfg.pins.at(index).green_channel, from.green,
-                                  to.green, linear_fade_segments, duration,
-                                  gamma_correction_calculator, SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX,
-                                  fade_params_list, &actual_fade_ranges);
-  ledc_set_multi_fade(cfg.timer_mode, cfg.pins.at(index).green_channel,
-                      gamma_correction_calculator(from.green), fade_params_list,
-                      actual_fade_ranges);
-
-  ledc_fill_multi_fade_param_list(cfg.timer_mode, cfg.pins.at(index).blue_channel, from.blue,
-                                  to.blue, linear_fade_segments, duration,
-                                  gamma_correction_calculator, SOC_LEDC_GAMMA_CURVE_FADE_RANGE_MAX,
-                                  fade_params_list, &actual_fade_ranges);
-  ledc_set_multi_fade(cfg.timer_mode, cfg.pins.at(index).blue_channel,
-                      gamma_correction_calculator(from.blue), fade_params_list, actual_fade_ranges);
-}
-
-template <uint8_t num_of_rgb_leds>
-void Led<num_of_rgb_leds>::led_fade(uint8_t led_index, color::Color from, color::Color to,
-                                    Milliseconds duration) {
-  const Duty duty_from(from);
-  const Duty duty_to(to);
-
-  rgb_set_gamma_curve_fade(led_index, duty_from, duty_to, duration);
-  rgb_fade_start(led_index);
+  config_fade(led_index, duty_to, duration);
+  fade_start(led_index);
   vTaskDelay(pdMS_TO_TICKS(duration.count()));
 }
 
@@ -215,8 +168,7 @@ Led<num_of_rgb_leds>::Led(Config const& _cfg) : cfg{_cfg} {
 template <uint8_t num_of_rgb_leds>
 void Led<num_of_rgb_leds>::set_color(color::Color color, uint8_t led_index,
                                      Milliseconds fade_time) {
-  led_fade(led_index, old_color, color, fade_time);
-  old_color = color;
+  led_fade(led_index, color, fade_time);
 }
 
 }  // namespace led
