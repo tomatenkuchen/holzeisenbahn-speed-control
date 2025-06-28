@@ -16,7 +16,6 @@
 #include "host/ble_hs_id.h"
 #include "host/ble_uuid.h"
 #include "host/util/util.h"
-#include "led.hpp"
 #include "nimble/ble.h"
 #include "nimble/hci_common.h"
 #include "nimble/nimble_port.h"

@@ -3,20 +3,20 @@
 /// @author tomatenkuchen
 /// @copyright GPLv2.0
 
-#include "driver/gptimer.h"
-#include "driver/mcpwm_cmpr.h"
-#include "driver/mcpwm_oper.h"
-#include "driver/mcpwm_timer.h"
-#include "pid.hpp"
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
 
+#include "driver/gptimer.h"
+#include "driver/mcpwm_cmpr.h"
+#include "driver/mcpwm_oper.h"
+#include "driver/mcpwm_timer.h"
+#include "lok/pid.hpp"
+
 namespace drive {
 
 class MeasureSpeed {
-
-public:
+ public:
   struct Config {
     /// circumpherance of propulsion wheel in meter
     float wheel_circumpherance_m;
@@ -44,14 +44,13 @@ public:
     uint64_t new_count;
     gptimer_get_raw_count(timer_handle, &new_count);
     uint64_t const delta_count = new_count - timestamp_latest_tacho_event;
-    speed_m_per_s =
-        cfg.wheel_circumpherance_m * cfg.timer_cfg.resolution_hz / delta_count;
+    speed_m_per_s = cfg.wheel_circumpherance_m * cfg.timer_cfg.resolution_hz / delta_count;
     timestamp_latest_tacho_event = new_count;
   }
 
   float get_speed_m_per_s() const { return speed_m_per_s; }
 
-private:
+ private:
   Config cfg;
   gptimer_handle_t timer_handle;
   float speed_m_per_s = 0;
@@ -59,7 +58,7 @@ private:
 };
 
 class MotorControl {
-public:
+ public:
   struct Config {
     mcpwm_timer_config_t timer_cfg;
     mcpwm_operator_config_t operator_cfg;
@@ -70,8 +69,7 @@ public:
     mcpwm_new_timer(&cfg.timer_cfg, &timer_handle);
     mcpwm_new_operator(&cfg.operator_cfg, &operator_handle);
     mcpwm_operator_connect_timer(operator_handle, timer_handle);
-    mcpwm_new_comparator(operator_handle, &cfg.comparator_cfg,
-                         &comparator_handle);
+    mcpwm_new_comparator(operator_handle, &cfg.comparator_cfg, &comparator_handle);
     mcpwm_comparator_set_compare_value(comparator_handle, 0);
     mcpwm_timer_start_stop(timer_handle, MCPWM_TIMER_START_NO_STOP);
   }
@@ -88,13 +86,12 @@ public:
   void set_duty(int32_t duty) {
     uint32_t const period_ticks = cfg.timer_cfg.period_ticks;
     uint64_t const period_offset = period_ticks / 2;
-    int32_t const period_duty =
-        period_offset * duty / std::numeric_limits<int32_t>::max();
+    int32_t const period_duty = period_offset * duty / std::numeric_limits<int32_t>::max();
     uint32_t const new_compare = cfg.timer_cfg.period_ticks / 2 + period_duty;
     mcpwm_comparator_set_compare_value(comparator_handle, new_compare);
   }
 
-private:
+ private:
   Config cfg;
   mcpwm_timer_handle_t timer_handle;
   mcpwm_oper_handle_t operator_handle;
@@ -112,13 +109,11 @@ class SpeedControl {
       .limit_min = -5,
   };
 
-public:
+ public:
   SpeedControl() : measure(measure_cfg), control(control_cfg), pid(pid_cfg) {}
   ~SpeedControl() {}
 
-  void set_ref_speed_m_per_s(float speed_m_per_s) {
-    speed_ref_m_per_s = speed_m_per_s;
-  }
+  void set_ref_speed_m_per_s(float speed_m_per_s) { speed_ref_m_per_s = speed_m_per_s; }
 
   void on_tacho_event() {
     measure.on_tacho_event();
@@ -128,11 +123,11 @@ public:
     control.set_duty(duty);
   }
 
-private:
+ private:
   MeasureSpeed measure;
   MotorControl control;
   sig::PIDController<float> pid;
   float speed_ref_m_per_s;
 };
 
-} // namespace drive
+}  // namespace drive

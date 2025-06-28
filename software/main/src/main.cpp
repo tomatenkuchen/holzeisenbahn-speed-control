@@ -8,9 +8,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "host/ble_store.h"
-#include "led.hpp"
+#include "lok/led.hpp"
+#include "lok/speed_ctrl.hpp"
 #include "sdkconfig.h"
-#include "speed_ctrl.hpp"
 
 using namespace std::chrono_literals;
 
