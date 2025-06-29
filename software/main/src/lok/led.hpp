@@ -20,7 +20,7 @@
 
 using namespace std::chrono_literals;
 
-namespace led {
+namespace lok {
 
 using Milliseconds = std::chrono::duration<uint32_t, std::milli>;
 
@@ -171,4 +171,4 @@ void Led<num_of_rgb_leds>::set_color(color::Color color, uint8_t led_index,
   led_fade(led_index, color, fade_time);
 }
 
-}  // namespace led
+}  // namespace lok
