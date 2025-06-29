@@ -37,6 +37,26 @@ class MeasureSpeed {
   float get_speed_m_per_s() const;
 
  private:
+  constexpr static inline int tacho_input_pin = 15;
+  constexpr static inline int tacho_input_pin_mask = 1 << tacho_input_pin;
+  constexpr static Config measure_cfg = {
+      .wheel_circumference_m = 0.1,
+      .timer_cfg =
+          {
+              .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+              .direction = GPTIMER_COUNT_UP,
+              .resolution_hz = 1'000'000,  // 1MHz, 1 tick=1us
+          },
+      .tacho_pin =
+          {
+              .pin_bit_mask = tacho_input_pin_mask,
+              .mode = GPIO_MODE_INPUT,
+              .pull_up_en = 0,
+              .pull_down_en = 1,
+              .intr_type = GPIO_INTR_POSEDGE,
+          },
+  };
+
   Config cfg;
   gptimer_handle_t timer_handle;
   float speed_m_per_s = 0;

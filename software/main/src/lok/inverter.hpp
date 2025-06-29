@@ -12,8 +12,7 @@
 
 namespace lok {
 using inverter_handle_t = struct mcpwm_svpwm_ctx *;
-
-using Duty = uint16_t;
+using Voltage = uint32_t;
 
 class Inverter {
  public:
@@ -41,7 +40,7 @@ class Inverter {
    * @return  - ESP_OK: set compare value successfully
    *          - ESP_ERR_INVALID_ARG: NULL arguments
    */
-  esp_err_t set_duty(std::array<Duty, 3> duties);
+  esp_err_t set_voltages(std::array<Voltage, 3> voltages);
 
   /**
    * @brief start/stop a svpwm invertor
@@ -52,6 +51,57 @@ class Inverter {
   void start(mcpwm_timer_start_stop_cmd_t command);
 
  private:
+  constexpr static inline int EXAMPLE_FOC_PWM_UH_GPIO = 47;
+  constexpr static inline int EXAMPLE_FOC_PWM_UL_GPIO = 21;
+  constexpr static inline int EXAMPLE_FOC_PWM_VH_GPIO = 14;
+  constexpr static inline int EXAMPLE_FOC_PWM_VL_GPIO = 13;
+  constexpr static inline int EXAMPLE_FOC_PWM_WH_GPIO = 12;
+  constexpr static inline int EXAMPLE_FOC_PWM_WL_GPIO = 11;
+  constexpr static inline uint32_t inverter_timer_resolution = 10'000'000;
+  constexpr static inline uint32_t inverter_pwm_period = 1000;
+
+  constexpr static inline Inverter::Config inverter_cfg = {
+      .timer_config =
+          {
+              .group_id = 0,
+              .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
+              .resolution_hz = inverter_timer_resolution,
+              // UP_DOWN mode will generate center align pwm wave, which can
+              // reduce MOSFET switch times on same effect, extend life
+              .count_mode = MCPWM_TIMER_COUNT_MODE_UP_DOWN,
+              .period_ticks = inverter_pwm_period,
+          },
+      .operator_config =
+          {
+              .group_id = 0,
+          },
+      .compare_config =
+          {
+              .flags =
+                  {
+                      .update_cmp_on_tez = true,
+                  },
+          },
+      .gen_gpios =
+          {
+              {EXAMPLE_FOC_PWM_UH_GPIO, EXAMPLE_FOC_PWM_UL_GPIO},
+              {EXAMPLE_FOC_PWM_VH_GPIO, EXAMPLE_FOC_PWM_VL_GPIO},
+              {EXAMPLE_FOC_PWM_WH_GPIO, EXAMPLE_FOC_PWM_WL_GPIO},
+          },
+      .dt_config =
+          {
+              .posedge_delay_ticks = 5,
+          },
+      .inv_dt_config =
+          {
+              .negedge_delay_ticks = 5,
+              .flags =
+                  {
+                      .invert_output = true,
+                  },
+          },
+  };
+
   mcpwm_timer_handle_t timer;
   mcpwm_oper_handle_t operators[3];
   mcpwm_cmpr_handle_t comparators[3];
