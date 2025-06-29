@@ -4,8 +4,9 @@
 
 #pragma once
 
-#include "inverter.hpp"
-#include "led.hpp"
+#include "lok/inverter.hpp"
+#include "lok/led.hpp"
+#include "lok/speed_ctrl.hpp"
 
 namespace lok {
 
