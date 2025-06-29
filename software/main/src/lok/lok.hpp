@@ -11,8 +11,8 @@ namespace lok {
 
 class Lok {
  public:
-  Lok() : inverter(inverter_cfg) {}
-  ~Lok() {}
+  Lok();
+  ~Lok();
 
   Led<2> lights;
   Inverter inverter;
@@ -26,6 +26,34 @@ class Lok {
   constexpr static inline int EXAMPLE_FOC_PWM_WL_GPIO = 11;
   constexpr static inline uint32_t inverter_timer_resolution = 10'000'000;
   constexpr static inline uint32_t inverter_pwm_period = 1000;
+
+  constexpr static inline Led<2>::Config led_config = {
+      .pins =
+          {
+              {
+                  {
+                      .red_pin = gpio_num_t(0),
+                      .red_channel = LEDC_CHANNEL_0,
+                      .green_pin = gpio_num_t(1),
+                      .green_channel = LEDC_CHANNEL_1,
+                      .blue_pin = gpio_num_t(2),
+                      .blue_channel = LEDC_CHANNEL_2,
+                  },
+                  {
+                      .red_pin = gpio_num_t(3),
+                      .red_channel = LEDC_CHANNEL_3,
+                      .green_pin = gpio_num_t(4),
+                      .green_channel = LEDC_CHANNEL_4,
+                      .blue_pin = gpio_num_t(5),
+                      .blue_channel = LEDC_CHANNEL_5,
+                  },
+              },
+          },
+      .timer = LEDC_TIMER_0,
+      .timer_mode = LEDC_LOW_SPEED_MODE,
+      .timer_resolution = LEDC_TIMER_13_BIT,
+      .timer_frequency = 4000,
+  };
 
   Inverter::Config inverter_cfg = {
       .timer_config =
@@ -68,6 +96,9 @@ class Lok {
                   },
           },
   };
-};
+};  // namespace lok
+
+Lok::Lok() : lights(led_config), inverter(inverter_cfg) {}
+Lok::~Lok() {}
 
 }  // namespace lok
