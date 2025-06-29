@@ -42,14 +42,6 @@ class Inverter {
    */
   esp_err_t set_voltages(std::array<Voltage, 3> voltages);
 
-  /**
-   * @brief start/stop a svpwm invertor
-   *
-   * @param command   see "mcpwm_timer_start_stop_cmd_t"
-   *
-   */
-  void start(mcpwm_timer_start_stop_cmd_t command);
-
  private:
   constexpr static inline int EXAMPLE_FOC_PWM_UH_GPIO = 47;
   constexpr static inline int EXAMPLE_FOC_PWM_UL_GPIO = 21;

@@ -3,6 +3,7 @@
 /// @author tomatenkuchen
 /// @copyright GPLv2.0
 
+#include <chrono>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -13,6 +14,8 @@
 #include "driver/mcpwm_oper.h"
 #include "driver/mcpwm_timer.h"
 #include "lok/pid.hpp"
+
+using namespace std::chrono_literals;
 
 namespace lok {
 
@@ -25,6 +28,8 @@ class MeasureSpeed {
     gptimer_config_t timer_cfg;
     /// tacho input pin
     gpio_config_t tacho_pin;
+    /// tacho pin callback function
+    void (*tacho_pin_callback)(void *);
   };
 
   MeasureSpeed(Config const &_cfg);
@@ -34,7 +39,10 @@ class MeasureSpeed {
   /// execute this function on a tacho event
   void on_tacho_event();
 
+  /// get current speed
   float get_speed_m_per_s() const;
+  /// get time delta between the latest tacho events
+  std::chrono::microseconds get_latest_delta_t() const;
 
  private:
   constexpr static inline int tacho_input_pin = 15;
@@ -60,7 +68,11 @@ class MeasureSpeed {
   Config cfg;
   gptimer_handle_t timer_handle;
   float speed_m_per_s = 0;
-  uint64_t timestamp_latest_tacho_event = 0;
+  std::chrono::microseconds delta_t_measurements = 0s;
+  std::chrono::microseconds timestamp_latest_tacho_event = 0s;
+
+  /// get the most recent timestamp from counter
+  std::chrono::microseconds get_current_time();
 };
 
 }  // namespace lok

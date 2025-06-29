@@ -3,6 +3,7 @@
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "hal/mcpwm_types.h"
 #include "inverter.hpp"
 
 namespace lok {
@@ -69,8 +70,17 @@ Inverter::Inverter(Config const &config) {
     throw std::runtime_error("inverter: invalid argument");
   }
 
-  if (mcpwm_timer_register_event_callbacks(handle->timer, event, user_ctx) != ESP_OK) {
+  if (mcpwm_timer_register_event_callbacks(timer, event, user_ctx) != ESP_OK) {
     throw std::runtime_error("inverter: register callbacks failed");
+  }
+
+  if (mcpwm_timer_start_stop(timer, MCPWM_TIMER_START_NO_STOP) != ESP_OK) {
+    throw std::runtime_error("inverter: mcpwm timer start failed");
+  }
+
+  // reset voltage output to 0
+  if (mcpwm_comparator_set_compare_value(comparators[i], 0 != ESP_OK) {
+    throw std::runtime_error("inverter: set duty failed");
   }
 
   *ret_inverter = svpwm_dev;
@@ -88,20 +98,11 @@ Inverter::~Inverter() {
   mcpwm_del_timer(timer);
 }
 
-void Inverter::start(mcpwm_timer_start_stop_cmd_t command) {
-  if ((command != MCPWM_TIMER_STOP_EMPTY) && (command != MCPWM_TIMER_STOP_FULL)) {
-    if (mcpwm_timer_enable(timer) != ESP_OK) {
-      throw std::runtime_error("inverter: mcpwm timer enable failed");
-    }
-  }
-  if (mcpwm_timer_start_stop(timer, command) != ESP_OK) {
-    throw std::runtime_error("inverter: mcpwm timer start failed");
-  }
-}
-
-void Inverter::set_duty(std::array<Duty, 3> duties) {
-  for (int i = 0; i < duties.size(); i++) {
-    if (mcpwm_comparator_set_compare_value(comparators[i], duties[i]) != ESP_OK) {
+void Inverter::set_voltage(std::array<Voltage, 3> voltages) {
+  auto const v_vat_mV = get_battery_voltage();
+  for (int i = 0; i < voltages.size(); i++) {
+    uint16_t duty = voltages[i] * inverter_pwm_period / v_bat_mV;
+    if (mcpwm_comparator_set_compare_value(comparators[i], voltages[i]) != ESP_OK) {
       throw std::runtime_error("inverter: set duty failed");
     }
   }
