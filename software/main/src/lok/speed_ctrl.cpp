@@ -2,7 +2,7 @@
 
 namespace lok {
 
-SpeedControl::SpeedControl() : measure(measure_cfg), inverter(inverter_cfg), pid(pid_cfg) {}
+SpeedControl::SpeedControl() {}
 SpeedControl::~SpeedControl() {}
 
 void SpeedControl::set_ref_speed_m_per_s(float speed_m_per_s) { speed_ref_m_per_s = speed_m_per_s; }

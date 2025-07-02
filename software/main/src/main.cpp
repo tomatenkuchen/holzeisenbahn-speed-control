@@ -22,7 +22,7 @@ constexpr uint8_t num_of_rgb_leds = 2;
 extern "C" void ble_store_config_init();
 
 ble::Ble *ble_ptr;
-led::Led<num_of_rgb_leds> *led_ptr;
+lok::Led<num_of_rgb_leds> *led_ptr;
 
 int led1_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
                     void *arg);
@@ -92,10 +92,10 @@ int led1_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
   // Turn the LED on or off according to the operation bit
   if (ctxt->om->om_data[0]) {
     ESP_LOGI("main", "led1 turned on");
-    led_ptr->set_color(led::color::red, 0, 1s);
+    led_ptr->set_color(lok::color::red, 0, 1s);
   } else {
     ESP_LOGI("main", "led1 turned off");
-    led_ptr->set_color(led::color::off, 0, 1s);
+    led_ptr->set_color(lok::color::off, 0, 1s);
   }
 
   return 0;
@@ -120,17 +120,17 @@ int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
   // Turn the LED on or off according to the operation bit
   if (ctxt->om->om_data[0]) {
     ESP_LOGI("main", "led2 turned on");
-    led_ptr->set_color(led::color::white, 1, 1s);
+    led_ptr->set_color(lok::color::white, 1, 1s);
   } else {
     ESP_LOGI("main", "led2 turned off");
-    led_ptr->set_color(led::color::off, 1, 1s);
+    led_ptr->set_color(lok::color::off, 1, 1s);
   }
 
   return 0;
 }
 
 void speed_control_task(void *param) {
-  drive::SpeedControl speed_control;
+  lok::SpeedControl speed_control();
   while (true) {
     vTaskDelay(100);
   }
@@ -167,7 +167,7 @@ void add_callbacks() {
 
 void ble_nimble_task(void *param) {
   constexpr gpio_num_t led_gpio = static_cast<gpio_num_t>(15);
-  constexpr led::Led<num_of_rgb_leds>::Config config = {
+  constexpr lok::Led<num_of_rgb_leds>::Config config = {
       .pins =
           {
               {
@@ -195,7 +195,7 @@ void ble_nimble_task(void *param) {
       .timer_frequency = 4000,
   };
 
-  led::Led<num_of_rgb_leds> Led(config);
+  lok::Led<num_of_rgb_leds> Led(config);
   led_ptr = &Led;
 
   ESP_LOGI("main", "led init complete");

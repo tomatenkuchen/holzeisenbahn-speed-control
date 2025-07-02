@@ -47,10 +47,6 @@ Ble::Ble(std::string _device_name, ble_gap_event_fn *_external_event_handler,
   ESP_LOGI("ble", "constructor: gatt init ok");
 }
 
-Ble::~Ble() {
-  // esp_nimble_hci_and_controller_deinit();
-}
-
 void Ble::format_addr(char *addr_str, uint8_t addr[]) {
   sprintf(addr_str, "%02X:%02X:%02X:%02X:%02X:%02X", addr[0], addr[1], addr[2], addr[3], addr[4],
           addr[5]);

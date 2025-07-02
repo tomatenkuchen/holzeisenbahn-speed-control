@@ -13,6 +13,7 @@
 #include "driver/mcpwm_cmpr.h"
 #include "driver/mcpwm_oper.h"
 #include "driver/mcpwm_timer.h"
+#include "hal/gpio_types.h"
 #include "lok/pid.hpp"
 
 using namespace std::chrono_literals;
@@ -41,6 +42,7 @@ class MeasureSpeed {
 
   /// get current speed
   float get_speed_m_per_s() const;
+
   /// get time delta between the latest tacho events
   std::chrono::microseconds get_latest_delta_t() const;
 
@@ -59,8 +61,8 @@ class MeasureSpeed {
           {
               .pin_bit_mask = tacho_input_pin_mask,
               .mode = GPIO_MODE_INPUT,
-              .pull_up_en = 0,
-              .pull_down_en = 1,
+              .pull_up_en = GPIO_PULLUP_DISABLE,
+              .pull_down_en = GPIO_PULLDOWN_ENABLE,
               .intr_type = GPIO_INTR_POSEDGE,
           },
   };

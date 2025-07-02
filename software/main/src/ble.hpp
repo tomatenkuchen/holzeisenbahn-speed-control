@@ -82,8 +82,6 @@ class Ble {
   Ble(std::string _device_name, ble_gap_event_fn *_external_event_handler,
       ble_gatt_svc_def *services, Antenna antenna = Antenna::internal);
 
-  ~Ble();
-
   /// @brief nimble base task
   void nimble_host_task();
 
