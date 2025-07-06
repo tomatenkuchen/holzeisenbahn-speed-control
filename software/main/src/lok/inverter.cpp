@@ -11,12 +11,12 @@ namespace lok {
 Inverter::Inverter(Config const &config) {
   esp_err_t ret;
 
-  if (mcpwm_new_timer(config.timer_config, &timer) != ESP_OK) {
+  if (mcpwm_new_timer(&config.timer_config, &timer) != ESP_OK) {
     throw std::runtime_error("inverter: failed to init pwm module");
   }
 
   for (int i = 0; i < 3; i++) {
-    if (mcpwm_new_operator(config.operator_config, &operators[i]) != ESP_OK) {
+    if (mcpwm_new_operator(&config.operator_config, &operators[i]) != ESP_OK) {
       throw std::runtime_error("inverter: faild to establish operator");
     }
     if (mcpwm_operator_connect_timer(operators[i], timer)) {
@@ -25,7 +25,7 @@ Inverter::Inverter(Config const &config) {
   }
 
   for (int i = 0; i < 3; i++) {
-    if (mcpwm_new_comparator(operators[i], config.compare_config, &comparators[i]) != ESP_OK) {
+    if (mcpwm_new_comparator(operators[i], &config.compare_config, &comparators[i]) != ESP_OK) {
       throw std::runtime_error("inverter: Create comparators failed");
     }
     if (mcpwm_comparator_set_compare_value(comparators[i], 0) != ESP_OK) {

@@ -33,21 +33,7 @@ class MeasureSpeed {
     void (*tacho_pin_callback)(void *);
   };
 
-  MeasureSpeed(Config const &_cfg);
-
-  ~MeasureSpeed();
-
-  /// execute this function on a tacho event
-  void on_tacho_event();
-
-  /// get current speed
-  float get_speed_m_per_s() const;
-
-  /// get time delta between the latest tacho events
-  std::chrono::microseconds get_latest_delta_t() const;
-
- private:
-  constexpr static inline int tacho_input_pin = 15;
+  constexpr static inline auto tacho_input_pin = gpio_num_t(15);
   constexpr static inline int tacho_input_pin_mask = 1 << tacho_input_pin;
   constexpr static Config measure_cfg = {
       .wheel_circumference_m = 0.1,
@@ -67,6 +53,20 @@ class MeasureSpeed {
           },
   };
 
+  MeasureSpeed(Config const &_cfg = measure_cfg);
+
+  MeasureSpeed::~MeasureSpeed();
+
+  /// execute this function on a tacho event
+  void on_tacho_event();
+
+  /// get current speed
+  float get_speed_m_per_s() const;
+
+  /// get time delta between the latest tacho events
+  std::chrono::microseconds get_latest_delta_t() const;
+
+ private:
   Config cfg;
   gptimer_handle_t timer_handle;
   float speed_m_per_s = 0;

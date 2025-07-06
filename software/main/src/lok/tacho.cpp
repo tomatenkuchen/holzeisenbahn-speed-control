@@ -5,6 +5,7 @@
 
 #include "driver/gpio.h"
 #include "driver/gptimer.h"
+#include "esp_intr_alloc.h"
 #include "lok/tacho.hpp"
 
 namespace lok {
@@ -15,11 +16,13 @@ MeasureSpeed::MeasureSpeed(Config const &_cfg) : cfg{_cfg} {
   }
   gptimer_enable(timer_handle);
   gptimer_start(timer_handle);
-  gptimer_get_raw_count(timer_handle, &timestamp_latest_tacho_event);
+  uint64_t raw_count;
+  gptimer_get_raw_count(timer_handle, &raw_count);
+  timestamp_latest_tacho_event = std::chrono::microseconds(raw_count);
 
   gpio_config(&cfg.tacho_pin);
 
-  gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+  gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
   gpio_isr_handler_add(tacho_input_pin, cfg.tacho_pin_callback, nullptr);
 }
 

@@ -27,7 +27,6 @@ class Inverter {
   };
 
   Inverter(Config const &Config);
-  ~Inverter();
 
   /**
    * @brief set 3 channels pwm comparator value for invertor
