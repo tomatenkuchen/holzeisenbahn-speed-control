@@ -1,3 +1,6 @@
+#include <array>
+
+#include "lok/inverter.hpp"
 #include "lok/speed_ctrl.hpp"
 
 namespace lok {
@@ -14,13 +17,15 @@ void SpeedControl::on_tacho_event() {
       speed_ref_m_per_s > 0 ? current_speed_m_per_s : -current_speed_m_per_s;
   float const error_m_per_s = speed_ref_m_per_s - current_speed_m_per_s;
   auto const voltage = pid.update(error_m_per_s);  // todo: add , delta_t);
+  auto const voltage_mV = static_cast<uint32_t>(voltage * 1000);
 
   // set new voltage
   if (voltage > 0) {
-    std::array<uint32_t, 3> v = {{{voltage, 0, 0}}};
-    inverter.set_voltages({voltage, 0, 0});
+    std::array<MilliVolts, 3> v = {{voltage_mV, 0, 0}};
+    inverter.set_voltages(v);
   } else {
-    inverter.set_voltages({0, voltage, 0});
+    std::array<MilliVolts, 3> v = {{0, voltage_mV, 0}};
+    inverter.set_voltages(v);
   }
 }
 

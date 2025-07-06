@@ -64,6 +64,10 @@ Inverter::Inverter(Config const &config) {
         ESP_OK) {
       throw std::runtime_error("inverter: Setup inv deadtime failed");
     }
+    // reset voltage output to 0
+    if (mcpwm_comparator_set_compare_value(comparators[i], 0 != ESP_OK)) {
+      throw std::runtime_error("inverter: set duty failed");
+    }
   }
 
   if (!(handle && event)) {
@@ -77,14 +81,6 @@ Inverter::Inverter(Config const &config) {
   if (mcpwm_timer_start_stop(timer, MCPWM_TIMER_START_NO_STOP) != ESP_OK) {
     throw std::runtime_error("inverter: mcpwm timer start failed");
   }
-
-  // reset voltage output to 0
-  if (mcpwm_comparator_set_compare_value(comparators[i], 0 != ESP_OK) {
-    throw std::runtime_error("inverter: set duty failed");
-  }
-
-  *ret_inverter = svpwm_dev;
-  return ESP_OK;
 }
 
 Inverter::~Inverter() {
@@ -98,9 +94,9 @@ Inverter::~Inverter() {
   mcpwm_del_timer(timer);
 }
 
-void Inverter::set_voltage(std::array<Voltage, 3> voltages) {
-  auto const v_vat_mV = get_battery_voltage();
-  for (int i = 0; i < voltages.size(); i++) {
+void Inverter::set_voltages(std::array<MilliVolts, 3> voltages_mV) {
+  auto const v_bat_mV = get_battery_voltage();
+  for (int i = 0; i < voltages_mV.size(); i++) {
     uint16_t duty = voltages[i] * inverter_pwm_period / v_bat_mV;
     if (mcpwm_comparator_set_compare_value(comparators[i], voltages[i]) != ESP_OK) {
       throw std::runtime_error("inverter: set duty failed");

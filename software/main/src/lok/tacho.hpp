@@ -55,7 +55,7 @@ class MeasureSpeed {
 
   MeasureSpeed(Config const &_cfg = measure_cfg);
 
-  MeasureSpeed::~MeasureSpeed();
+  ~MeasureSpeed();
 
   /// execute this function on a tacho event
   void on_tacho_event();
