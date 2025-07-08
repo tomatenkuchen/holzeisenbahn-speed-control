@@ -3,6 +3,8 @@
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "hal/mcpwm_hal.h"
+#include "hal/mcpwm_ll.h"
 #include "hal/mcpwm_types.h"
 #include "inverter.hpp"
 
@@ -70,11 +72,7 @@ Inverter::Inverter(Config const &config) {
     }
   }
 
-  if (!(handle && event)) {
-    throw std::runtime_error("inverter: invalid argument");
-  }
-
-  if (mcpwm_timer_register_event_callbacks(timer, event, user_ctx) != ESP_OK) {
+  if (mcpwm_timer_register_event_callbacks(timer, config.event, nullptr) != ESP_OK) {
     throw std::runtime_error("inverter: register callbacks failed");
   }
 
