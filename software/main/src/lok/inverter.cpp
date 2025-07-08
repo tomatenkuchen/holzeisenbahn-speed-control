@@ -10,7 +10,34 @@
 
 namespace lok {
 
-Inverter::Inverter(Config const &config) {
+Inverter::Inverter(Config const& config) {
+  init_pwm(config.pwm);
+  init_adc(config.adc);
+}
+
+Inverter::~Inverter() {
+  mcpwm_timer_disable(timer);
+  for (int i = 0; i < 3; i++) {
+    mcpwm_del_generator(generators[i][0]);
+    mcpwm_del_generator(generators[i][1]);
+    mcpwm_del_comparator(comparators[i]);
+    mcpwm_del_operator(operators[i]);
+  }
+  mcpwm_del_timer(timer);
+}
+}
+
+void Inverter::set_voltages(std::array<MilliVolts, 3> voltages_mV) {
+  auto const v_bat_mV = get_battery_voltage();
+  for (int i = 0; i < voltages_mV.size(); i++) {
+    uint16_t duty = voltages_mV[i] * inverter_pwm_period / v_bat_mV;
+    if (mcpwm_comparator_set_compare_value(comparators[i], duty) != ESP_OK) {
+      throw std::runtime_error("inverter: set duty failed");
+    }
+  }
+}
+
+void Inverter::init_pwm(PwmConfig const& config) {
   esp_err_t ret;
 
   if (mcpwm_new_timer(&config.timer_config, &timer) != ESP_OK) {
@@ -58,11 +85,11 @@ Inverter::Inverter(Config const &config) {
   }
 
   for (int i = 0; i < 3; i++) {
-    if (mcpwm_generator_set_dead_time(generators[i][0], generators[i][0], config.dt_config) !=
+    if (mcpwm_generator_set_dead_time(generators[i][0], generators[i][0], &config.dt_config) !=
         ESP_OK) {
       throw std::runtime_error("inverter: failed setting dead time");
     };
-    if (mcpwm_generator_set_dead_time(generators[i][0], generators[i][1], config.inv_dt_config) !=
+    if (mcpwm_generator_set_dead_time(generators[i][0], generators[i][1], &config.inv_dt_config) !=
         ESP_OK) {
       throw std::runtime_error("inverter: Setup inv deadtime failed");
     }
@@ -81,25 +108,17 @@ Inverter::Inverter(Config const &config) {
   }
 }
 
-Inverter::~Inverter() {
-  mcpwm_timer_disable(timer);
-  for (int i = 0; i < 3; i++) {
-    mcpwm_del_generator(generators[i][0]);
-    mcpwm_del_generator(generators[i][1]);
-    mcpwm_del_comparator(comparators[i]);
-    mcpwm_del_operator(operators[i]);
-  }
-  mcpwm_del_timer(timer);
+void Inverter::init_adc(AdcConfig const& config) {
+  adc_oneshot_new_unit(&config.unit, &adc_handle);
+  adc_oneshot_config_channel(adc_handle, EXAMPLE_ADC1_CHAN0, &config.channel);
 }
 
-void Inverter::set_voltages(std::array<MilliVolts, 3> voltages_mV) {
-  auto const v_bat_mV = get_battery_voltage();
-  for (int i = 0; i < voltages_mV.size(); i++) {
-    uint16_t duty = voltages[i] * inverter_pwm_period / v_bat_mV;
-    if (mcpwm_comparator_set_compare_value(comparators[i], voltages[i]) != ESP_OK) {
-      throw std::runtime_error("inverter: set duty failed");
-    }
-  }
+MilliVolts Inverter::get_battery_voltage() {
+  uint16_t adc_raw;
+  adc_oneshot_read(adc_handle, EXAMPLE_ADC1_CHAN0, &adc_raw);
+  // some calculation
+  MilliVolts const res = adc_raw * 1000;
+  return res;
 }
 
 }  // namespace lok

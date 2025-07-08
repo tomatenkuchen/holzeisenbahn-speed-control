@@ -8,6 +8,9 @@
 
 #include "driver/mcpwm_prelude.h"
 #include "driver/mcpwm_timer.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#include "esp_adc/adc_oneshot.h"
 #include "hal/mcpwm_types.h"
 
 namespace lok {
@@ -25,7 +28,12 @@ class Inverter {
   constexpr static inline uint32_t inverter_timer_resolution = 10'000'000;
   constexpr static inline uint32_t inverter_pwm_period = 1000;
 
-  struct Config {
+  struct AdcConfig {
+    adc_oneshot_unit_init_cfg_t unit;
+    adc_oneshot_chan_cfg_t channel;
+  };
+
+  struct PwmConfig {
     mcpwm_timer_config_t timer_config;         // pwm timer and timing config
     mcpwm_operator_config_t operator_config;   // mcpwm operator config
     mcpwm_comparator_config_t compare_config;  // mcpwm comparator config
@@ -35,44 +43,65 @@ class Inverter {
     mcpwm_timer_event_callbacks_t *event;
   };
 
+  struct Config {
+    AdcConfig adc;
+    PwmConfig pwm;
+  };
+
   constexpr static inline Inverter::Config inverter_cfg = {
-      .timer_config =
+      .adc =
           {
-              .group_id = 0,
-              .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
-              .resolution_hz = inverter_timer_resolution,
-              // UP_DOWN mode will generate center align pwm wave, which can
-              // reduce MOSFET switch times on same effect, extend life
-              .count_mode = MCPWM_TIMER_COUNT_MODE_UP_DOWN,
-              .period_ticks = inverter_pwm_period,
-          },
-      .operator_config =
-          {
-              .group_id = 0,
-          },
-      .compare_config =
-          {
-              .flags =
+              .unit =
                   {
-                      .update_cmp_on_tez = true,
+                      .unit_id = ADC_UNIT_1,
+                  },
+              .channel =
+                  {
+                      .atten = ADC_ATTEN_DB_12,
+                      .bitwidth = ADC_BITWIDTH_DEFAULT,
                   },
           },
-      .gen_gpios =
+      .pwm =
           {
-              {EXAMPLE_FOC_PWM_UH_GPIO, EXAMPLE_FOC_PWM_UL_GPIO},
-              {EXAMPLE_FOC_PWM_VH_GPIO, EXAMPLE_FOC_PWM_VL_GPIO},
-              {EXAMPLE_FOC_PWM_WH_GPIO, EXAMPLE_FOC_PWM_WL_GPIO},
-          },
-      .dt_config =
-          {
-              .posedge_delay_ticks = 5,
-          },
-      .inv_dt_config =
-          {
-              .negedge_delay_ticks = 5,
-              .flags =
+
+              .timer_config =
                   {
-                      .invert_output = true,
+                      .group_id = 0,
+                      .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
+                      .resolution_hz = inverter_timer_resolution,
+                      // UP_DOWN mode will generate center align pwm wave, which can
+                      // reduce MOSFET switch times on same effect, extend life
+                      .count_mode = MCPWM_TIMER_COUNT_MODE_UP_DOWN,
+                      .period_ticks = inverter_pwm_period,
+                  },
+              .operator_config =
+                  {
+                      .group_id = 0,
+                  },
+              .compare_config =
+                  {
+                      .flags =
+                          {
+                              .update_cmp_on_tez = true,
+                          },
+                  },
+              .gen_gpios =
+                  {
+                      {EXAMPLE_FOC_PWM_UH_GPIO, EXAMPLE_FOC_PWM_UL_GPIO},
+                      {EXAMPLE_FOC_PWM_VH_GPIO, EXAMPLE_FOC_PWM_VL_GPIO},
+                      {EXAMPLE_FOC_PWM_WH_GPIO, EXAMPLE_FOC_PWM_WL_GPIO},
+                  },
+              .dt_config =
+                  {
+                      .posedge_delay_ticks = 5,
+                  },
+              .inv_dt_config =
+                  {
+                      .negedge_delay_ticks = 5,
+                      .flags =
+                          {
+                              .invert_output = true,
+                          },
                   },
           },
   };
@@ -97,6 +126,12 @@ class Inverter {
   mcpwm_oper_handle_t operators[3];
   mcpwm_cmpr_handle_t comparators[3];
   mcpwm_gen_handle_t generators[3][2];
+
+  adc_oneshot_unit_handle_t adc_handle;
+
+  void init_pwm(PwmConfig const &config);
+  void init_adc(AdcConfig const &config);
+  MilliVolts get_battery_voltage();
 };
 
 }  // namespace lok
