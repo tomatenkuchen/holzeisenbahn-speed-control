@@ -8,8 +8,6 @@
 
 #include "driver/mcpwm_prelude.h"
 #include "driver/mcpwm_timer.h"
-#include "esp_adc/adc_cali.h"
-#include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_oneshot.h"
 #include "hal/mcpwm_types.h"
 
@@ -30,7 +28,8 @@ class Inverter {
 
   struct AdcConfig {
     adc_oneshot_unit_init_cfg_t unit;
-    adc_oneshot_chan_cfg_t channel;
+    adc_channel_t channel;
+    adc_oneshot_chan_cfg_t channel_cfg;
   };
 
   struct PwmConfig {

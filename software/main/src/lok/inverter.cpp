@@ -1,8 +1,12 @@
 #include <stdexcept>
 
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "hal/adc_types.h"
 #include "hal/mcpwm_hal.h"
 #include "hal/mcpwm_ll.h"
 #include "hal/mcpwm_types.h"
@@ -24,7 +28,6 @@ Inverter::~Inverter() {
     mcpwm_del_operator(operators[i]);
   }
   mcpwm_del_timer(timer);
-}
 }
 
 void Inverter::set_voltages(std::array<MilliVolts, 3> voltages_mV) {
@@ -110,12 +113,12 @@ void Inverter::init_pwm(PwmConfig const& config) {
 
 void Inverter::init_adc(AdcConfig const& config) {
   adc_oneshot_new_unit(&config.unit, &adc_handle);
-  adc_oneshot_config_channel(adc_handle, EXAMPLE_ADC1_CHAN0, &config.channel);
+  adc_oneshot_config_channel(adc_handle, &config.channel, &config.channel_cfg);
 }
 
 MilliVolts Inverter::get_battery_voltage() {
   uint16_t adc_raw;
-  adc_oneshot_read(adc_handle, EXAMPLE_ADC1_CHAN0, &adc_raw);
+  adc_oneshot_read(adc_handle, &config.channel, &adc_raw);
   // some calculation
   MilliVolts const res = adc_raw * 1000;
   return res;

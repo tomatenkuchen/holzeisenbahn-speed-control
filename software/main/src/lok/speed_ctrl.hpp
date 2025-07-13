@@ -72,43 +72,47 @@ class SpeedControl {
   };
 
   Inverter::Config inverter_cfg = {
-      .timer_config =
+      .adc = {0},
+      .pwm =
           {
-              .group_id = 0,
-              .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
-              .resolution_hz = inverter_timer_resolution,
-              // UP_DOWN mode will generate center align pwm wave, which can
-              // reduce MOSFET switch times on same effect, extend life
-              .count_mode = MCPWM_TIMER_COUNT_MODE_UP_DOWN,
-              .period_ticks = inverter_pwm_period,
-          },
-      .operator_config =
-          {
-              .group_id = 0,
-          },
-      .compare_config =
-          {
-              .flags =
+              .timer_config =
                   {
-                      .update_cmp_on_tez = true,
+                      .group_id = 0,
+                      .clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT,
+                      .resolution_hz = inverter_timer_resolution,
+                      // UP_DOWN mode will generate center align pwm wave, which can
+                      // reduce MOSFET switch times on same effect, extend life
+                      .count_mode = MCPWM_TIMER_COUNT_MODE_UP_DOWN,
+                      .period_ticks = inverter_pwm_period,
                   },
-          },
-      .gen_gpios =
-          {
-              {EXAMPLE_FOC_PWM_UH_GPIO, EXAMPLE_FOC_PWM_UL_GPIO},
-              {EXAMPLE_FOC_PWM_VH_GPIO, EXAMPLE_FOC_PWM_VL_GPIO},
-              {EXAMPLE_FOC_PWM_WH_GPIO, EXAMPLE_FOC_PWM_WL_GPIO},
-          },
-      .dt_config =
-          {
-              .posedge_delay_ticks = 5,
-          },
-      .inv_dt_config =
-          {
-              .negedge_delay_ticks = 5,
-              .flags =
+              .operator_config =
                   {
-                      .invert_output = true,
+                      .group_id = 0,
+                  },
+              .compare_config =
+                  {
+                      .flags =
+                          {
+                              .update_cmp_on_tez = true,
+                          },
+                  },
+              .gen_gpios =
+                  {
+                      {EXAMPLE_FOC_PWM_UH_GPIO, EXAMPLE_FOC_PWM_UL_GPIO},
+                      {EXAMPLE_FOC_PWM_VH_GPIO, EXAMPLE_FOC_PWM_VL_GPIO},
+                      {EXAMPLE_FOC_PWM_WH_GPIO, EXAMPLE_FOC_PWM_WL_GPIO},
+                  },
+              .dt_config =
+                  {
+                      .posedge_delay_ticks = 5,
+                  },
+              .inv_dt_config =
+                  {
+                      .negedge_delay_ticks = 5,
+                      .flags =
+                          {
+                              .invert_output = true,
+                          },
                   },
           },
   };
