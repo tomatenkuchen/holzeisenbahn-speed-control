@@ -9,6 +9,7 @@
 #include "driver/mcpwm_prelude.h"
 #include "driver/mcpwm_timer.h"
 #include "esp_adc/adc_oneshot.h"
+#include "hal/adc_types.h"
 #include "hal/mcpwm_types.h"
 
 namespace lok {
@@ -47,14 +48,15 @@ class Inverter {
     PwmConfig pwm;
   };
 
-  constexpr static inline Inverter::Config inverter_cfg = {
+  constexpr static inline Inverter::Config default_cfg = {
       .adc =
           {
               .unit =
                   {
                       .unit_id = ADC_UNIT_1,
                   },
-              .channel =
+              .channel = ADC_CHANNEL_0,
+              .channel_cfg =
                   {
                       .atten = ADC_ATTEN_DB_12,
                       .bitwidth = ADC_BITWIDTH_DEFAULT,
@@ -105,7 +107,7 @@ class Inverter {
           },
   };
 
-  Inverter(Config const &Config = inverter_cfg);
+  Inverter(Config const &Config = default_cfg);
 
   ~Inverter();
 
@@ -131,6 +133,8 @@ class Inverter {
   void init_pwm(PwmConfig const &config);
   void init_adc(AdcConfig const &config);
   MilliVolts get_battery_voltage();
+
+  Config config;
 };
 
 }  // namespace lok

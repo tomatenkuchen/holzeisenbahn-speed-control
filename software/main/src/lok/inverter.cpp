@@ -14,7 +14,7 @@
 
 namespace lok {
 
-Inverter::Inverter(Config const& config) {
+Inverter::Inverter(Config const& config) : config{config} {
   init_pwm(config.pwm);
   init_adc(config.adc);
 }
@@ -113,12 +113,12 @@ void Inverter::init_pwm(PwmConfig const& config) {
 
 void Inverter::init_adc(AdcConfig const& config) {
   adc_oneshot_new_unit(&config.unit, &adc_handle);
-  adc_oneshot_config_channel(adc_handle, &config.channel, &config.channel_cfg);
+  adc_oneshot_config_channel(adc_handle, config.channel, &config.channel_cfg);
 }
 
 MilliVolts Inverter::get_battery_voltage() {
-  uint16_t adc_raw;
-  adc_oneshot_read(adc_handle, &config.channel, &adc_raw);
+  int adc_raw;
+  adc_oneshot_read(adc_handle, config.adc.channel, &adc_raw);
   // some calculation
   MilliVolts const res = adc_raw * 1000;
   return res;

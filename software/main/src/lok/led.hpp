@@ -66,7 +66,35 @@ class Led {
     uint32_t timer_frequency;
   };
 
-  Led(Config const& _cfg);
+  constexpr static inline Config default_config = {
+      .pins =
+          {
+              {
+                  {
+                      .red_pin = gpio_num_t(0),
+                      .red_channel = LEDC_CHANNEL_0,
+                      .green_pin = gpio_num_t(1),
+                      .green_channel = LEDC_CHANNEL_1,
+                      .blue_pin = gpio_num_t(2),
+                      .blue_channel = LEDC_CHANNEL_2,
+                  },
+                  {
+                      .red_pin = gpio_num_t(3),
+                      .red_channel = LEDC_CHANNEL_3,
+                      .green_pin = gpio_num_t(4),
+                      .green_channel = LEDC_CHANNEL_4,
+                      .blue_pin = gpio_num_t(5),
+                      .blue_channel = LEDC_CHANNEL_5,
+                  },
+              },
+          },
+      .timer = LEDC_TIMER_0,
+      .timer_mode = LEDC_LOW_SPEED_MODE,
+      .timer_resolution = LEDC_TIMER_13_BIT,
+      .timer_frequency = 4000,
+  };
+
+  Led(Config const& _cfg = default_config);
 
   void set_color(color::Color color, uint8_t led_index, Milliseconds fade_time = 1s);
 
