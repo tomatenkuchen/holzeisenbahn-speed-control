@@ -19,7 +19,11 @@ namespace lok {
 
 class SpeedControl {
  public:
-  SpeedControl();
+  struct Config {
+    void (*tacho_pin_callback)(void*);
+  };
+
+  SpeedControl(Config const& cfg);
 
   void set_ref_speed_m_per_s(float speed_m_per_s);
 
@@ -32,43 +36,6 @@ class SpeedControl {
       .amp_d = 0.,
       .limit_max = 4.3,
       .limit_min = -4.3,
-  };
-
-  constexpr static inline int EXAMPLE_FOC_PWM_UH_GPIO = 47;
-  constexpr static inline int EXAMPLE_FOC_PWM_UL_GPIO = 21;
-  constexpr static inline int EXAMPLE_FOC_PWM_VH_GPIO = 14;
-  constexpr static inline int EXAMPLE_FOC_PWM_VL_GPIO = 13;
-  constexpr static inline int EXAMPLE_FOC_PWM_WH_GPIO = 12;
-  constexpr static inline int EXAMPLE_FOC_PWM_WL_GPIO = 11;
-  constexpr static inline uint32_t inverter_timer_resolution = 10'000'000;
-  constexpr static inline uint32_t inverter_pwm_period = 1000;
-
-  Led<2>::Config led_config = {
-      .pins =
-          {
-              {
-                  {
-                      .red_pin = gpio_num_t(0),
-                      .red_channel = LEDC_CHANNEL_0,
-                      .green_pin = gpio_num_t(1),
-                      .green_channel = LEDC_CHANNEL_1,
-                      .blue_pin = gpio_num_t(2),
-                      .blue_channel = LEDC_CHANNEL_2,
-                  },
-                  {
-                      .red_pin = gpio_num_t(3),
-                      .red_channel = LEDC_CHANNEL_3,
-                      .green_pin = gpio_num_t(4),
-                      .green_channel = LEDC_CHANNEL_4,
-                      .blue_pin = gpio_num_t(5),
-                      .blue_channel = LEDC_CHANNEL_5,
-                  },
-              },
-          },
-      .timer = LEDC_TIMER_0,
-      .timer_mode = LEDC_LOW_SPEED_MODE,
-      .timer_resolution = LEDC_TIMER_13_BIT,
-      .timer_frequency = 4000,
   };
 
   MeasureSpeed measure;

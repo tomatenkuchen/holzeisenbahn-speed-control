@@ -23,6 +23,7 @@ extern "C" void ble_store_config_init();
 
 ble::Ble *ble_ptr;
 lok::Led<num_of_rgb_leds> *led_ptr;
+lok::SpeedControl *speed_ctrl_ptr;
 
 int led1_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
                     void *arg);
@@ -129,11 +130,19 @@ int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
   return 0;
 }
 
+void measure_pin_callback(void *params) { speed_ctrl_ptr->on_tacho_event(); }
+
 void speed_control_task(void *param) {
-  lok::SpeedControl speed_control();
+  lok::SpeedControl::Config cfg = {
+      .tacho_pin_callback = measure_pin_callback,
+  };
+  lok::SpeedControl speed_control(cfg);
+  speed_ctrl_ptr = &speed_control;
+
   while (true) {
     vTaskDelay(100);
   }
+
   vTaskDelete(NULL);
 }
 
@@ -222,7 +231,7 @@ void ble_nimble_task(void *param) {
 extern "C" void app_main() {
   try {
     xTaskCreate(ble_nimble_task, "ble task", 8 * 1024, NULL, 5, NULL);
-    // xTaskCreate(speed_control_task, "Heart Rate", 4 * 1024, NULL, 5, NULL);
+    xTaskCreate(speed_control_task, "Speed Control", 8 * 1024, NULL, 5, NULL);
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();
     ESP_LOGE("main", "error: %s", err_msg.c_str());

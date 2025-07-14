@@ -5,7 +5,14 @@
 
 namespace lok {
 
-SpeedControl::SpeedControl() : inverter(), pid(pid_cfg) {}
+SpeedControl::SpeedControl(Config const& cfg)
+    : measure([&]() {
+        auto meas_cfg = MeasureSpeed::measure_cfg;
+        meas_cfg.tacho_pin_callback = cfg.tacho_pin_callback;
+        return meas_cfg;
+      }()),
+      inverter(),
+      pid(pid_cfg) {}
 
 void SpeedControl::set_ref_speed_m_per_s(float speed_m_per_s) { speed_ref_m_per_s = speed_m_per_s; }
 
