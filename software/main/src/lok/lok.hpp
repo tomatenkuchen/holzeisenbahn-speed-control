@@ -21,7 +21,7 @@ class Lok {
 
  private:
   SpeedControl speed_ctrl;
-  Led<2> led;
+  // Led<2> led;
 };
 
 Lok::Lok(Config const& _cfg)

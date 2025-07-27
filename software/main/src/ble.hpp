@@ -2,6 +2,8 @@
 /// @brief bluetooth low energy class
 /// @copyright GPL v2.0
 
+#pragma once
+
 #include <array>
 #include <string>
 #include <variant>
