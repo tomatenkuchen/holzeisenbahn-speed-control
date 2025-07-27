@@ -3,6 +3,8 @@
 /// @author tomatenkuchen
 /// @copyright GPLv2.0
 
+#pragma once
+
 #include <cstdint>
 #include <limits>
 #include <stdexcept>

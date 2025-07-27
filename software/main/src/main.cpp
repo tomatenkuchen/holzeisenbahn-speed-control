@@ -127,7 +127,10 @@ int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
   return 0;
 }
 
-void measure_pin_callback(void *params) { lok_ptr->on_tacho_event(); }
+void measure_pin_callback(void *params) {
+  ESP_LOGI(TAG.c_str(), "mearue_pin callback");
+  lok_ptr->on_tacho_event();
+}
 
 void speed_control_task(void *param) {
   lok::Lok::Config const lok_cfg = {

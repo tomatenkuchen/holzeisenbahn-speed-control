@@ -3,6 +3,8 @@
 /// @author tomatenkuchen
 /// @copyright GPLv2.0
 
+#pragma once
+
 #include <chrono>
 #include <cstdint>
 #include <limits>
@@ -33,7 +35,7 @@ class MeasureSpeed {
     void (*tacho_pin_callback)(void *);
   };
 
-  constexpr static inline auto tacho_input_pin = gpio_num_t(15);
+  constexpr static inline auto tacho_input_pin = gpio_num_t(0);
   constexpr static inline int tacho_input_pin_mask = 1 << tacho_input_pin;
   constexpr static Config measure_cfg = {
       .wheel_circumference_m = 0.1,
@@ -48,7 +50,7 @@ class MeasureSpeed {
               .pin_bit_mask = tacho_input_pin_mask,
               .mode = GPIO_MODE_INPUT,
               .pull_up_en = GPIO_PULLUP_DISABLE,
-              .pull_down_en = GPIO_PULLDOWN_ENABLE,
+              .pull_down_en = GPIO_PULLDOWN_DISABLE,
               .intr_type = GPIO_INTR_POSEDGE,
           },
   };

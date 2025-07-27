@@ -6,24 +6,36 @@
 #include "driver/gpio.h"
 #include "driver/gptimer.h"
 #include "esp_intr_alloc.h"
+#include "esp_log.h"
 #include "lok/tacho.hpp"
 
 namespace lok {
 
-MeasureSpeed::MeasureSpeed(Config const &_cfg) : cfg{_cfg} {
+MeasureSpeed::MeasureSpeed(Config const &_cfg)
+    : cfg{_cfg} {
+  ESP_LOGI("tacho", "constructor");
+
   if (gptimer_new_timer(&cfg.timer_cfg, &timer_handle) != ESP_OK) {
     throw std::runtime_error("measure speed: timer init failed");
   }
   gptimer_enable(timer_handle);
   gptimer_start(timer_handle);
+
   uint64_t raw_count;
   gptimer_get_raw_count(timer_handle, &raw_count);
   timestamp_latest_tacho_event = std::chrono::microseconds(raw_count);
 
-  gpio_config(&cfg.tacho_pin);
+  ESP_LOGI("tacho", "latest tacho count: %d", raw_count);
 
-  gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
-  gpio_isr_handler_add(tacho_input_pin, cfg.tacho_pin_callback, nullptr);
+  gpio_config(&cfg.tacho_pin);
+  ESP_LOGI("tacho", "interrupt pin configed");
+
+  auto const install_res = gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
+  ESP_LOGI("tacho", "interrupt service installed with res: %d", install_res);
+
+  auto const add_handler_res =
+      gpio_isr_handler_add(tacho_input_pin, cfg.tacho_pin_callback, nullptr);
+  ESP_LOGI("tacho", "interrupt handler installed with state %d", add_handler_res);
 }
 
 MeasureSpeed::~MeasureSpeed() {
@@ -34,6 +46,8 @@ MeasureSpeed::~MeasureSpeed() {
 
 /// execute this function on a tacho event
 void MeasureSpeed::on_tacho_event() {
+  ESP_LOGI("tacho", "tacho event");
+
   auto const current_time = get_current_time();
   delta_t_measurements = current_time - timestamp_latest_tacho_event;
   speed_m_per_s = cfg.wheel_circumference_m * 1'000'000. / delta_t_measurements.count();
