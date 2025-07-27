@@ -206,7 +206,7 @@ void ble_nimble_task(void *param) {
 extern "C" void app_main() {
   try {
     // xTaskCreate(ble_nimble_task, "ble task", 8 * 1024, NULL, 5, NULL);
-    xTaskCreate(speed_control_task, "Speed Control", 8 * 1024, NULL, 5, NULL);
+    xTaskCreate(speed_control_task, "Speed Control", 10 * 1024, NULL, 5, NULL);
     ESP_LOGI(TAG.c_str(), "enter app main");
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();

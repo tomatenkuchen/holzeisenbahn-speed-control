@@ -8,15 +8,15 @@
 namespace lok {
 
 SpeedControl::SpeedControl(Config const& cfg)
-    :
+    :  //   inverter(),
+
+      pid(pid_cfg),
 
       measure([&]() {
         auto meas_cfg = MeasureSpeed::measure_cfg;
         meas_cfg.tacho_pin_callback = cfg.tacho_pin_callback;
         return meas_cfg;
-      }()),
-      //   inverter(),
-      pid(pid_cfg) {
+      }()) {
   ESP_LOGI("speedctrl", "constructor");
 }
 
@@ -25,7 +25,7 @@ void SpeedControl::set_ref_speed_m_per_s(float speed_m_per_s) { speed_ref_m_per_
 void SpeedControl::on_tacho_event() {
   ESP_LOGI("speedctrl", "tacho event");
 
-  measure.on_tacho_event();
+  // measure.on_tacho_event();
   // auto const delta_t = measure.get_latest_delta_t();
   // float const current_speed_m_per_s = measure.get_speed_m_per_s();
   // float const current_speed_m_per_s_direction =

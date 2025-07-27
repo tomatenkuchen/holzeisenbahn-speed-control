@@ -40,9 +40,9 @@ class SpeedControl {
       .limit_min = -4.3,
   };
 
-  MeasureSpeed measure;
   // Inverter inverter;
   sig::PIDController<float> pid;
+  MeasureSpeed measure;
   float speed_ref_m_per_s = 0.;
 };
 
