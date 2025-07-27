@@ -8,8 +8,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "host/ble_store.h"
-#include "lok/led.hpp"
-#include "lok/speed_ctrl.hpp"
+#include "lok/lok.hpp"
 #include "sdkconfig.h"
 
 using namespace std::chrono_literals;
@@ -17,13 +16,11 @@ using namespace std::chrono_literals;
 namespace {
 
 constexpr std::string TAG = "main";
-constexpr uint8_t num_of_rgb_leds = 2;
 
 extern "C" void ble_store_config_init();
 
 ble::Ble *ble_ptr;
-lok::Led<num_of_rgb_leds> *led_ptr;
-lok::SpeedControl *speed_ctrl_ptr;
+lok::Lok *lok_ptr;
 
 int led1_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_ctxt *ctxt,
                     void *arg);
@@ -92,11 +89,11 @@ int led1_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
 
   // Turn the LED on or off according to the operation bit
   if (ctxt->om->om_data[0]) {
-    ESP_LOGI("main", "led1 turned on");
-    led_ptr->set_color(lok::color::red, 0, 1s);
+    ESP_LOGI(TAG.c_str(), "led1 turned on");
+    // led_ptr->set_color(lok::color::red, 0, 1s);
   } else {
-    ESP_LOGI("main", "led1 turned off");
-    led_ptr->set_color(lok::color::off, 0, 1s);
+    ESP_LOGI(TAG.c_str(), "led1 turned off");
+    // led_ptr->set_color(lok::color::off, 0, 1s);
   }
 
   return 0;
@@ -120,26 +117,33 @@ int led2_chr_access(uint16_t conn_handle, uint16_t attr_handle, ble_gatt_access_
 
   // Turn the LED on or off according to the operation bit
   if (ctxt->om->om_data[0]) {
-    ESP_LOGI("main", "led2 turned on");
-    led_ptr->set_color(lok::color::white, 1, 1s);
+    ESP_LOGI(TAG.c_str(), "led2 turned on");
+    // led_ptr->set_color(lok::color::white, 1, 1s);
   } else {
-    ESP_LOGI("main", "led2 turned off");
-    led_ptr->set_color(lok::color::off, 1, 1s);
+    ESP_LOGI(TAG.c_str(), "led2 turned off");
+    // led_ptr->set_color(lok::color::off, 1, 1s);
   }
 
   return 0;
 }
 
-void measure_pin_callback(void *params) { speed_ctrl_ptr->on_tacho_event(); }
+void measure_pin_callback(void *params) { lok_ptr->on_tacho_event(); }
 
 void speed_control_task(void *param) {
-  lok::SpeedControl::Config cfg = {
-      .tacho_pin_callback = measure_pin_callback,
+  lok::Lok::Config const lok_cfg = {
+      .speed_control_config =
+          {
+              .tacho_pin_callback = measure_pin_callback,
+          },
   };
-  lok::SpeedControl speed_control(cfg);
-  speed_ctrl_ptr = &speed_control;
+
+  ESP_LOGI(TAG.c_str(), "speed control task");
+  lok::Lok lok(lok_cfg);
+
+  lok_ptr = &lok;
 
   while (true) {
+    ESP_LOGI(TAG.c_str(), "speed control task loop");
     vTaskDelay(100);
   }
 
@@ -151,13 +155,13 @@ void speed_control_task(void *param) {
 /// @param args additional info besides event data. not used by any callback but
 /// required by callback type
 int event_handler(ble_gap_event *event, void *args) {
-  ESP_LOGI("main", "event callback");
+  ESP_LOGI(TAG.c_str(), "event callback");
   ble_ptr->event_handler(event);
 
   return 0;
 }
 
-void on_stack_reset(int reason) { ESP_LOGI("main", "ble stack reset"); }
+void on_stack_reset(int reason) { ESP_LOGI(TAG.c_str(), "ble stack reset"); }
 
 void on_stack_sync() { ble_ptr->start_advertising(); }
 
@@ -175,53 +179,21 @@ void add_callbacks() {
 }
 
 void ble_nimble_task(void *param) {
-  constexpr gpio_num_t led_gpio = static_cast<gpio_num_t>(15);
-  constexpr lok::Led<num_of_rgb_leds>::Config config = {
-      .pins =
-          {
-              {
-                  {
-                      .red_pin = gpio_num_t(0),
-                      .red_channel = LEDC_CHANNEL_0,
-                      .green_pin = gpio_num_t(1),
-                      .green_channel = LEDC_CHANNEL_1,
-                      .blue_pin = gpio_num_t(2),
-                      .blue_channel = LEDC_CHANNEL_2,
-                  },
-                  {
-                      .red_pin = gpio_num_t(3),
-                      .red_channel = LEDC_CHANNEL_3,
-                      .green_pin = gpio_num_t(4),
-                      .green_channel = LEDC_CHANNEL_4,
-                      .blue_pin = gpio_num_t(5),
-                      .blue_channel = LEDC_CHANNEL_5,
-                  },
-              },
-          },
-      .timer = LEDC_TIMER_0,
-      .timer_mode = LEDC_LOW_SPEED_MODE,
-      .timer_resolution = LEDC_TIMER_13_BIT,
-      .timer_frequency = 4000,
-  };
-
-  lok::Led<num_of_rgb_leds> Led(config);
-  led_ptr = &Led;
-
-  ESP_LOGI("main", "led init complete");
+  ESP_LOGI(TAG.c_str(), "led init complete");
 
   ble::Ble ble("henri-lok", event_handler, ble_services.data(), ble::Ble::Antenna::external);
   ble_ptr = &ble;
 
-  ESP_LOGI("main", "ble init complete");
+  ESP_LOGI(TAG.c_str(), "ble init complete");
 
   add_callbacks();
 
-  ESP_LOGI("main", "callbacks added");
+  ESP_LOGI(TAG.c_str(), "callbacks added");
 
   ble.nimble_host_task();
 
   while (true) {
-    ESP_LOGI("main", "ble heart beat");
+    ESP_LOGI(TAG.c_str(), "ble heart beat");
     vTaskDelay(200);
   }
 }
@@ -230,7 +202,7 @@ void ble_nimble_task(void *param) {
 
 extern "C" void app_main() {
   try {
-    xTaskCreate(ble_nimble_task, "ble task", 8 * 1024, NULL, 5, NULL);
+    // xTaskCreate(ble_nimble_task, "ble task", 8 * 1024, NULL, 5, NULL);
     xTaskCreate(speed_control_task, "Speed Control", 8 * 1024, NULL, 5, NULL);
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();
