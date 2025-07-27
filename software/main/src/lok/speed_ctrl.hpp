@@ -39,7 +39,7 @@ class SpeedControl {
   };
 
   MeasureSpeed measure;
-  Inverter inverter;
+  // Inverter inverter;
   sig::PIDController<float> pid;
   float speed_ref_m_per_s = 0.;
 };

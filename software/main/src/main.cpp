@@ -204,10 +204,13 @@ extern "C" void app_main() {
   try {
     // xTaskCreate(ble_nimble_task, "ble task", 8 * 1024, NULL, 5, NULL);
     xTaskCreate(speed_control_task, "Speed Control", 8 * 1024, NULL, 5, NULL);
+    ESP_LOGI(TAG.c_str(), "enter app main");
   } catch (std::runtime_error &e) {
     std::string const err_msg = e.what();
     ESP_LOGE("main", "error: %s", err_msg.c_str());
   } catch (...) {
     ESP_LOGE("main", "unknown error occured");
   }
+
+  ESP_LOGI(TAG.c_str(), "exit app main");
 }
