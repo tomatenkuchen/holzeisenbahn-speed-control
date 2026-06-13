@@ -3843,7 +3843,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Button_Switch_SMD:SW_SPST_CK_KMS2xxGP"
+		(property "Footprint" "Button_Switch_SMD:SW_SPST_TS-1088-xR020"
 			(at 102.87 139.7 0)
 			(hide yes)
 			(show_name no)
@@ -3854,7 +3854,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "https://jlc-prod-smt.oss-eu-central-1.aliyuncs.com/smtDataManualFile/8588903737833873408-C221698.pdf?response-content-disposition=attachment%3B%20filename%3DC221698.pdf%3B%20filename%2A%3DUTF-8%27%27C221698.pdf&x-oss-date=20260604T163458Z&x-oss-expires=1800&x-oss-security-token=CAISgAN1q6Ft5B2yfSjIr5rgEov%2B1Z5Y5IPeVHLE03MEOcpBm6iagzz2IHhMdHJsAOodtv0%2FmmhT6PkclqRLcbhpcmfjV%2BZHzLB8qaJ7%2B39A4J7b16cNrbH4M4H6aXeirtuwDsz9SNTCALjPD3nPii50x5bjaDymRCbLGJaViJlhHLN1Ow6jdmhpCctxLAlvo9NgFxm3D%2Fu2NQPwiWf9FVdhvhEG6Vly8qOi2MaRmFy8yFTx0b0SvJ%2BjYMrmPctoN9JnSdC5mfdzau3a1TJ84gRD0a5wkaVA1zbDs5bfISEIuUzebreLqY03dV4mOvdqIcMe8qigz88fk%2FfIioH6xyxKOexoSCnFTOiiupCcQLPyao9jLu6iayqViY7QaIOTqQohZmkAMwVOasAsI3Ngh4zF97Qt0cVNkXO9gWfLI8DtuMleWsrkxPosAnSgc5lCkRRYwGs1287ugXlSQzo890KPDAEovaKCnZ2ZSfh7Y4sNknI6i%2Bfc2Se2MIkIBfjYxKKWD5sagAGJZBLg4dXI2cxwZhpjHr9vfG2bcnPeD2ZekO6CLDE470zoyla87k22%2FMfMgD7nSJvKHKZxx7wRTJR2C%2FIed5gUddUWOOyzyialMQCX42pgq2cGFbW2xRzddJF8rKP5p2z7HTq0AIZLZQQExEqwnA3Me1xxudMxwbz09i63yKlbRSAA&x-oss-signature-version=OSS4-HMAC-SHA256&x-oss-credential=STS.NYUY1J8AySA5VTu7sQ5Emtm1a%2F20260604%2Feu-central-1%2Foss%2Faliyun_v4_request&x-oss-signature=0287d07f1d74dc173e35fdd16bbbdb40a7eb09e1df544025205ab3d6ea2886b8"
+		(property "Datasheet" "https://jlc-prod-smt.oss-eu-central-1.aliyuncs.com/smtDataManualFile/8588886944055513088-C720477.pdf?response-content-disposition=attachment%3B%20filename%3DC720477.pdf%3B%20filename%2A%3DUTF-8%27%27C720477.pdf&x-oss-date=20260613T095523Z&x-oss-expires=1800&x-oss-security-token=CAISgAN1q6Ft5B2yfSjIr5nbM%2F7DpZ4X8vGyW3bIlkM%2BZ9lDpIDymDz2IHhMdHJsAOodtv0%2FmmhT6PkclqRLcbhpcmfjV%2BZHzLB8qbU3tGRF4J7b16cNrbH4M4H6aXeirtuwDsz9SNTCALjPD3nPii50x5bjaDymRCbLGJaViJlhHLN1Ow6jdmhpCctxLAlvo9NgFxm3D%2Fu2NQPwiWf9FVdhvhEG6Vly8qOi2MaRmFy8yFTx0b0SvJ%2BjYMrmPctoN9JnSdC5mfdzau3a1TJ84gRD0a5wkaVA1zbDs5bfISEIuUzebreLqY03dV4mOvdqIcMe8qigz88fk%2FfIioH6xyxKOexoSCnFTOiiupCcQLPyao9jLu6iayqViY7QaIOTqQohZmkAMwVOasAsI3Ngh4zF97Qt0cVNkXO9gWfLI8DtuMleWkpqA555GAPyAFpORa%2Bb5wchMHn6pr9EWOXuJZUIn3b%2FstWNupKq5ldctHSeoXq108CXVnU5PXYIKTIPXqKWD5sagAEUO2GYpMOHNmUI2aeoltsuhn2q5tYPfVojnLMFuBgbyRMlLEVrSl%2BAiNbyqebA0zMto18kd9JWF41J9ol8FzjNd6v2n4DpME8rNHRehrn63Wkk3UuD5A7%2Bzf0pEXK1OmFeKTwmPUZJh0%2FkQvdbVSeP7V92bvUvinYc69H1ZcazxCAA&x-oss-signature-version=OSS4-HMAC-SHA256&x-oss-credential=STS.NZnxDwHA6E3YYPyrCkkVoKEYz%2F20260613%2Feu-central-1%2Foss%2Faliyun_v4_request&x-oss-signature=0882924d2430544bba2cc0b02233edb855cf6e0e71f1bc6decfb309c8d97d8e2"
 			(at 102.87 139.7 0)
 			(hide yes)
 			(show_name no)
@@ -3865,7 +3865,7 @@
 				)
 			)
 		)
-		(property "Description" "C221698"
+		(property "Description" "C720477"
 			(at 107.95 139.7 0)
 			(hide yes)
 			(show_name no)
@@ -4253,87 +4253,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Switch:SW_Push")
-		(at 228.6 139.7 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "8916b598-9735-4089-b34b-41c44e246bda")
-		(property "Reference" "SW1"
-			(at 227.076 132.334 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "KMS221GLFS"
-			(at 230.632 132.334 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" "Button_Switch_SMD:SW_SPST_CK_KMS2xxGP"
-			(at 223.52 139.7 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlc-prod-smt.oss-eu-central-1.aliyuncs.com/smtDataManualFile/8588903737833873408-C221698.pdf?response-content-disposition=attachment%3B%20filename%3DC221698.pdf%3B%20filename%2A%3DUTF-8%27%27C221698.pdf&x-oss-date=20260604T163458Z&x-oss-expires=1800&x-oss-security-token=CAISgAN1q6Ft5B2yfSjIr5rgEov%2B1Z5Y5IPeVHLE03MEOcpBm6iagzz2IHhMdHJsAOodtv0%2FmmhT6PkclqRLcbhpcmfjV%2BZHzLB8qaJ7%2B39A4J7b16cNrbH4M4H6aXeirtuwDsz9SNTCALjPD3nPii50x5bjaDymRCbLGJaViJlhHLN1Ow6jdmhpCctxLAlvo9NgFxm3D%2Fu2NQPwiWf9FVdhvhEG6Vly8qOi2MaRmFy8yFTx0b0SvJ%2BjYMrmPctoN9JnSdC5mfdzau3a1TJ84gRD0a5wkaVA1zbDs5bfISEIuUzebreLqY03dV4mOvdqIcMe8qigz88fk%2FfIioH6xyxKOexoSCnFTOiiupCcQLPyao9jLu6iayqViY7QaIOTqQohZmkAMwVOasAsI3Ngh4zF97Qt0cVNkXO9gWfLI8DtuMleWsrkxPosAnSgc5lCkRRYwGs1287ugXlSQzo890KPDAEovaKCnZ2ZSfh7Y4sNknI6i%2Bfc2Se2MIkIBfjYxKKWD5sagAGJZBLg4dXI2cxwZhpjHr9vfG2bcnPeD2ZekO6CLDE470zoyla87k22%2FMfMgD7nSJvKHKZxx7wRTJR2C%2FIed5gUddUWOOyzyialMQCX42pgq2cGFbW2xRzddJF8rKP5p2z7HTq0AIZLZQQExEqwnA3Me1xxudMxwbz09i63yKlbRSAA&x-oss-signature-version=OSS4-HMAC-SHA256&x-oss-credential=STS.NYUY1J8AySA5VTu7sQ5Emtm1a%2F20260604%2Feu-central-1%2Foss%2Faliyun_v4_request&x-oss-signature=0287d07f1d74dc173e35fdd16bbbdb40a7eb09e1df544025205ab3d6ea2886b8"
-			(at 223.52 139.7 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "C221698"
-			(at 228.6 139.7 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "163d80fa-72d1-4322-a6b5-b6c423676ab3")
-		)
-		(pin "2"
-			(uuid "6593423e-c6ab-4e5b-97b2-1b2cd8038c55")
-		)
-		(instances
-			(project "control"
-				(path "/a48bfc30-bdab-4a84-8176-692a115cc595/c74e1f1d-22f4-4f9d-8f80-7a60d3f285ae"
-					(reference "SW1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:R")
 		(at 69.85 49.53 0)
 		(unit 1)
@@ -4572,6 +4491,87 @@
 			(project "control"
 				(path "/a48bfc30-bdab-4a84-8176-692a115cc595/c74e1f1d-22f4-4f9d-8f80-7a60d3f285ae"
 					(reference "AE1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Switch:SW_Push")
+		(at 228.6 139.7 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "a7e30d14-5cb2-4cde-a4d8-51abcdb684a7")
+		(property "Reference" "SW5"
+			(at 227.076 132.334 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "KMS221GLFS"
+			(at 230.632 132.334 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Button_Switch_SMD:SW_SPST_TS-1088-xR020"
+			(at 223.52 139.7 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://jlc-prod-smt.oss-eu-central-1.aliyuncs.com/smtDataManualFile/8588886944055513088-C720477.pdf?response-content-disposition=attachment%3B%20filename%3DC720477.pdf%3B%20filename%2A%3DUTF-8%27%27C720477.pdf&x-oss-date=20260613T095523Z&x-oss-expires=1800&x-oss-security-token=CAISgAN1q6Ft5B2yfSjIr5nbM%2F7DpZ4X8vGyW3bIlkM%2BZ9lDpIDymDz2IHhMdHJsAOodtv0%2FmmhT6PkclqRLcbhpcmfjV%2BZHzLB8qbU3tGRF4J7b16cNrbH4M4H6aXeirtuwDsz9SNTCALjPD3nPii50x5bjaDymRCbLGJaViJlhHLN1Ow6jdmhpCctxLAlvo9NgFxm3D%2Fu2NQPwiWf9FVdhvhEG6Vly8qOi2MaRmFy8yFTx0b0SvJ%2BjYMrmPctoN9JnSdC5mfdzau3a1TJ84gRD0a5wkaVA1zbDs5bfISEIuUzebreLqY03dV4mOvdqIcMe8qigz88fk%2FfIioH6xyxKOexoSCnFTOiiupCcQLPyao9jLu6iayqViY7QaIOTqQohZmkAMwVOasAsI3Ngh4zF97Qt0cVNkXO9gWfLI8DtuMleWkpqA555GAPyAFpORa%2Bb5wchMHn6pr9EWOXuJZUIn3b%2FstWNupKq5ldctHSeoXq108CXVnU5PXYIKTIPXqKWD5sagAEUO2GYpMOHNmUI2aeoltsuhn2q5tYPfVojnLMFuBgbyRMlLEVrSl%2BAiNbyqebA0zMto18kd9JWF41J9ol8FzjNd6v2n4DpME8rNHRehrn63Wkk3UuD5A7%2Bzf0pEXK1OmFeKTwmPUZJh0%2FkQvdbVSeP7V92bvUvinYc69H1ZcazxCAA&x-oss-signature-version=OSS4-HMAC-SHA256&x-oss-credential=STS.NZnxDwHA6E3YYPyrCkkVoKEYz%2F20260613%2Feu-central-1%2Foss%2Faliyun_v4_request&x-oss-signature=0882924d2430544bba2cc0b02233edb855cf6e0e71f1bc6decfb309c8d97d8e2"
+			(at 223.52 139.7 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "C720477"
+			(at 228.6 139.7 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "503b322a-6e0a-4ddc-a52c-423048b68ef5")
+		)
+		(pin "2"
+			(uuid "657e965f-7bae-4603-84c7-c9296172b386")
+		)
+		(instances
+			(project "control"
+				(path "/a48bfc30-bdab-4a84-8176-692a115cc595/c74e1f1d-22f4-4f9d-8f80-7a60d3f285ae"
+					(reference "SW5")
 					(unit 1)
 				)
 			)

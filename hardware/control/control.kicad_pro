@@ -670,7 +670,7 @@
         "uuid": "a48bfc30-bdab-4a84-8176-692a115cc595"
       }
     ],
-    "used_designators": "RV1,Y1-2,SW1-4,BT2,L3-7,Q1-2,U1-7,R1-2,R5-6,R9-15,R29-37,J1-6,AE1,D1-2,D5-7,C1-2,C5-7,C15-16,C19-20,C28-33",
+    "used_designators": "RV1,Y1-2,SW1-5,BT2,L3-7,Q1-2,U1-7,R1-2,R5-6,R9-15,R29-37,J1-6,AE1,D1-2,D5-7,C1-2,C5-7,C15-16,C19-20,C28-33",
     "variants": []
   },
   "sheets": [
