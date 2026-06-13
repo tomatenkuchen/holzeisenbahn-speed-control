@@ -2093,7 +2093,7 @@
 				)
 			)
 		)
-		(property "Description" "-40℃~+125℃@(TJ) 1 100uA 1MHz 2.5V~7V 3A Adjustable Boost Boost Built-in No SOT-23-6 DC-DC Converters ROHS"
+		(property "Description" "C708881"
 			(at 147.574 157.734 0)
 			(hide yes)
 			(show_name no)
